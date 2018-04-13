@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Control.Monad
@@ -5,6 +7,7 @@ import CPU
 import Data.ByteString
 import Fonts
 import GameROMLoader
+import Graphics
 import Instruction
 import MachineState
 import Memory
@@ -12,6 +15,8 @@ import Parser
 import Register
 import RegisterName
 import VideoMemory
+
+import qualified SDL
 
 main :: IO ()
 main = do
@@ -25,6 +30,17 @@ run gameROM = do
   loadFonts $ memory machineState
   loadGameROM (memory machineState) gameROM
   setPC machineState gameROMStartPosition
+
+  SDL.initialize [SDL.InitVideo]
+
+  window <- SDL.createWindow
+                   "Chip8"
+                   SDL.defaultWindow
+                   { SDL.windowInitialSize = SDL.V2 (fromIntegral width * scale) (fromIntegral height * scale) }
+  SDL.showWindow window
+
+  -- draw (videoMemory machineState) surface
+
   forever $ do
     pc <- getPC machineState
     instruction <- fmap decodeInstruction $ fetch machineState
@@ -35,4 +51,7 @@ run gameROM = do
       (JP _) -> return ()
       (CALL _) -> return ()
       (JPV0 _) -> return ()
+      (DRW _ _ _) -> do
+        draw (videoMemory machineState) window
+        SDL.updateWindowSurface window
       _ -> incPC machineState

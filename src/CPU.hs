@@ -117,7 +117,7 @@ execute machineState (DRW vx vy bytesToRead) = do
   address <- getI machineState
   erased <- drawSprite (memory machineState) (videoMemory machineState) (fromIntegral x, fromIntegral y) (fromIntegral bytesToRead) (fromIntegral address)
   setCarry machineState $ if erased then 1 else 0
-  printInConsole (videoMemory machineState)
+  -- printInConsole (videoMemory machineState)
 
 execute machineState (SKP vx) = return () -- TODO This currently assumes that the key with the value of Vx is not pressed
 
