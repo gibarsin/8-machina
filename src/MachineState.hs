@@ -57,6 +57,11 @@ setI machineState value = setValueAtPseudoRegister (pseudoRegisters machineState
 getI :: MachineState -> IO Address
 getI machineState = getPseudoRegisterValue (pseudoRegisters machineState) I
 
+incI :: MachineState -> IO ()
+incI machineState = do
+  currI <- getI machineState
+  setValueAtPseudoRegister (pseudoRegisters machineState) I (currI + 1)
+
 decTimers :: MachineState -> IO ()
 decTimers machineState = do
   decTimer (registers machineState) DT

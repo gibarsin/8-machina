@@ -29,9 +29,9 @@ data Instruction =
   | XOR   RegisterName  RegisterName
   | ADD   RegisterName  RegisterName
   | SUB   RegisterName  RegisterName
-  | SHR   RegisterName
+  | SHR   RegisterName  RegisterName
   | SUBN  RegisterName  RegisterName
-  | SHL   RegisterName
+  | SHL   RegisterName  RegisterName
   | SNERR RegisterName  RegisterName
   | LDI   Address
   | JPV0  Address
@@ -72,9 +72,9 @@ decodeInstruction encodedInstruction = case opcode of
     0x3 -> XOR  vx vy
     0x4 -> ADD  vx vy
     0x5 -> SUB  vx vy
-    0x6 -> SHR  vx
+    0x6 -> SHR  vx vy
     0x7 -> SUBN vx vy
-    0xE -> SHL  vx
+    0xE -> SHL  vx vy
     _ -> error ("Invalid encoded instruction = " ++ show encodedInstruction)
   0x9 -> case lowestNibble of
     0x0 -> SNERR vx vy

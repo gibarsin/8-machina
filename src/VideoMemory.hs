@@ -51,8 +51,9 @@ drawSprite' videoMemory (x, y) boolSprite = do
       let dx = index `mod` 8
       let dy = index `div` 8
       pixelState <- getPixelState videoMemory (x + dx, y + dy)
-      drawPixel' videoMemory (x + dx, y + dy) (pixelState `xor` boolBit)
-      return (index + 1, (pixelState && boolBit) || erased)
+      let erased' = pixelState && boolBit
+      when boolBit $ drawPixel' videoMemory (x + dx, y + dy) (not erased')
+      return (index + 1, erased' || erased)
 
 getPixelState :: VideoMemory -> (WordVideoAddress, WordVideoAddress) -> IO Bool
 getPixelState videoMemory (x, y) = readArray videoMemory $ getVideoIndex (x, y)
@@ -69,5 +70,5 @@ printInConsole videoMemory = do
   let stringVideo = map (\boolBit -> if boolBit then 'X' else ' ') videoList
   prettyVideo <- mapM_ (putStrLn . unwords) $ map (map show) $ chunksOf (fromIntegral width) stringVideo
   print prettyVideo
-  _ <- SP.system "clear"
+  -- _ <- SP.system "clear"
   return ()

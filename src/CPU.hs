@@ -36,7 +36,6 @@ execute machineState (CALL address) = do
   push (stack machineState) currPC
   setPC machineState address
 
--- TODO abstraction of SERB and SNERB because of functions == and /=
 execute machineState (SERB vx value) = do
   registerValue <- getRegisterValue (registers machineState) vx
   when (registerValue == value) $ incPC machineState
@@ -58,43 +57,39 @@ execute machineState (LDRR vx vy) = do
   registerY <- getRegisterValue (registers machineState) vy
   setValueAtRegister (registers machineState) vx registerY
 
-execute machineState (OR vx vy) =
-  operateRegisters machineState vx vx (.|.) vy
+execute machineState (OR vx vy) = operateRegisters machineState vx vx (.|.) vy
 
-execute machineState (AND vx vy) =
-  operateRegisters machineState vx vx (.&.) vy
+execute machineState (AND vx vy) = operateRegisters machineState vx vx (.&.) vy
 
-execute machineState (XOR vx vy) =
-  operateRegisters machineState vx vx xor vy
+execute machineState (XOR vx vy) = operateRegisters machineState vx vx xor vy
 
 execute machineState (ADD vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
-  setCarry machineState $ if registerY > 255 - registerX then 1 else 0
+  setCarry machineState $ if registerX > 255 - registerY then 1 else 0
   operateRegisters  machineState vx vx (+) vy
 
 execute machineState (SUB vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
   setCarry machineState $ if registerX > registerY then 1 else 0
-  -- print $ "Sub = " ++ show (registerX - registerY)
-  operateRegisters  machineState vx vx subtract vy
+  operateRegisters  machineState vx vy subtract vx
 
-execute machineState (SHR vx) = do
-  registerX <- getRegisterValue (registers machineState) vx
-  setCarry machineState $ registerX .&. 0x1
-  setValueAtRegister (registers machineState) vx (registerX `shiftR` 1)
+execute machineState (SHR vx vy) = do
+  registerY <- getRegisterValue (registers machineState) vy
+  setCarry machineState $ registerY .&. 0x1
+  setValueAtRegister (registers machineState) vx (registerY `shiftR` 1)
 
 execute machineState (SUBN vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
   setCarry machineState $ if registerY > registerX then 1 else 0
-  operateRegisters  machineState vx vy subtract vx
+  operateRegisters  machineState vx vx subtract vy
 
-execute machineState (SHL vx) = do
-  registerX <- getRegisterValue (registers machineState) vx
-  setCarry machineState $ if (registerX .&. 0x80) == 0x80 then 1 else 0
-  setValueAtRegister (registers machineState) vx (registerX `shiftL` 1)
+execute machineState (SHL vx vy) = do
+  registerY <- getRegisterValue (registers machineState) vy
+  setCarry machineState $ if (registerY .&. 0x80) == 0x80 then 1 else 0
+  setValueAtRegister (registers machineState) vx (registerY `shiftL` 1)
 
 execute machineState (SNERR vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
@@ -116,12 +111,13 @@ execute machineState (DRW vx vy bytesToRead) = do
   y <- getRegisterValue (registers machineState) vy
   address <- getI machineState
   erased <- drawSprite (memory machineState) (videoMemory machineState) (fromIntegral x, fromIntegral y) (fromIntegral bytesToRead) (fromIntegral address)
+  -- when (not erased) $ print erased
   setCarry machineState $ if erased then 1 else 0
   -- printInConsole (videoMemory machineState)
 
 execute machineState (SKP vx) = return () -- TODO This currently assumes that the key with the value of Vx is not pressed
 
-execute machineState (SKNP vx) = return ()--incPC machineState -- TODO This assumes that the key with the value of Vx is not pressed
+execute machineState (SKNP vx) = incPC machineState -- TODO This assumes that the key with the value of Vx is not pressed
 
 execute machineState (LDRDT vx) = do
     dt <- getRegisterValue (registers machineState) DT
@@ -147,7 +143,7 @@ execute machineState (ADDI vx) = do
 
 execute machineState (LDF vx) = do
     registerX <- getRegisterValue (registers machineState) vx
-    setI machineState (fontsStartPosition + fromIntegral (fontSizeInWordMemory * registerX))
+    setI machineState (fontsStartPosition + fromIntegral (fontSizeInWordMemory * (registerX .&. 0x0f)))
 
 execute machineState (LDB vx) = do
     registerX <- getRegisterValue (registers machineState) vx
@@ -158,18 +154,21 @@ execute machineState (LDB vx) = do
     setWordAtMemory (memory machineState) (registerI + 2) bcd2
 
 execute machineState (LDIR vx) = do
-    registerI <- getI machineState
+
     foldM_ (\a registerName -> do
+      registerI <- getI machineState
       valueToStore <- getRegisterValue (registers machineState) registerName
-      setWordAtMemory (memory machineState) (registerI + a) valueToStore
+      setWordAtMemory (memory machineState) (registerI) valueToStore
+      incI machineState
       return $ a + 1
       ) 0 [V0 .. vx]
 
 execute machineState (LDRI vx) = do
-    registerI <- getI machineState
     foldM_ (\a registerName -> do
-      valueToStore <- getWordFromMemory (memory machineState) (registerI + a)
+      registerI <- getI machineState
+      valueToStore <- getWordFromMemory (memory machineState) (registerI)
       setValueAtRegister (registers machineState) registerName valueToStore
+      incI machineState
       return $ a + 1
       ) 0 [V0 .. vx]
 

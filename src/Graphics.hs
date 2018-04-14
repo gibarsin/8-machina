@@ -7,7 +7,7 @@ import  SDL
 import VideoMemory
 import Data.Array.MArray
 
-scale = 8
+scale = 16
 
 draw :: VideoMemory -> SDL.Window -> IO ()
 draw vm window =
