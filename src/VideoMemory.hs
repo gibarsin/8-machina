@@ -28,10 +28,10 @@ drawSprite memory videoMemory (x, y) bytesToRead address = do
   mem <- getElems memory
   -- print (address >= fromIntegral fontsStartPosition && address <= fromIntegral fontsStartPosition + 5 * 16)
   -- print mem
-  print address
-  print bytesToRead
+  -- print address
+  -- print bytesToRead
   sprite <- fmap (take (fromIntegral bytesToRead) . drop (fromIntegral address)) $ getElems memory -- TODO make an abstraction of getElems
-  print sprite
+  -- print sprite
   let boolSprite = concatMap toBoolList sprite
   drawSprite' videoMemory (x, y) boolSprite
 

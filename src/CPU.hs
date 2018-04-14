@@ -121,7 +121,7 @@ execute machineState (DRW vx vy bytesToRead) = do
 
 execute machineState (SKP vx) = return () -- TODO This currently assumes that the key with the value of Vx is not pressed
 
-execute machineState (SKNP vx) = incPC machineState -- TODO This assumes that the key with the value of Vx is not pressed
+execute machineState (SKNP vx) = return ()--incPC machineState -- TODO This assumes that the key with the value of Vx is not pressed
 
 execute machineState (LDRDT vx) = do
     dt <- getRegisterValue (registers machineState) DT
@@ -146,15 +146,16 @@ execute machineState (ADDI vx) = do
     setI machineState (registerI + (fromIntegral registerX))
 
 execute machineState (LDF vx) = do
-    registerX <- (getRegisterValue (registers machineState) vx)
-    setI machineState (fontsStartPosition + fromIntegral (fontSizeInWordMemory * (registerX .&. 0x0F)))
+    registerX <- getRegisterValue (registers machineState) vx
+    setI machineState (fontsStartPosition + fromIntegral (fontSizeInWordMemory * registerX))
 
 execute machineState (LDB vx) = do
     registerX <- getRegisterValue (registers machineState) vx
     registerI <- getI machineState
-    foldM_
-      (\a value ->
-        setWordAtMemory (memory machineState) (registerI + a) value >> return (a + 1)) 0 (digits registerX)
+    let (bcd0, bcd1, bcd2) =  bcd8 registerX
+    setWordAtMemory (memory machineState) (registerI + 0) bcd0
+    setWordAtMemory (memory machineState) (registerI + 1) bcd1
+    setWordAtMemory (memory machineState) (registerI + 2) bcd2
 
 execute machineState (LDIR vx) = do
     registerI <- getI machineState
@@ -179,6 +180,9 @@ operateRegisters machineState registerToSave registerNameA op registerNameB = do
   registerB <- getRegisterValue (registers machineState) registerNameB
   setValueAtRegister (registers machineState) registerToSave (registerA `op` registerB)
 
-digits = reverse . digits'
-digits' 0 = []
-digits' x = x `mod` 10 : digits' (x `div` 10)
+bcd8 n =
+  case map (read . (:[])) (show n) of
+    [z]     -> (0,0,z)
+    [y,z]   -> (0,y,z)
+    [x,y,z] -> (x,y,z)
+    _ -> error $ "Impossible pattern match for: " ++ show n
