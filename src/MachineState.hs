@@ -1,5 +1,7 @@
 module MachineState where
 
+import Control.Monad
+import Keyboard
 import Memory
 import Register
 import RegisterName
@@ -8,11 +10,12 @@ import VideoMemory
 
 data MachineState = MachineState
   {
-    memory :: Memory
-  , videoMemory :: VideoMemory
-  , registers :: Registers
+    keypad :: Keypad
+  , memory :: Memory
   , pseudoRegisters :: PseudoRegisters
+  , registers :: Registers
   , stack :: Stack
+  , videoMemory :: VideoMemory
   }
 
 memorySize :: Address
@@ -21,20 +24,25 @@ memorySize = 4096
 twoByteWords = 2
 
 createMachineState :: IO MachineState
-createMachineState =
-  do
-    newMemory <- createMemory memorySize
-    newVideoMemory <- createVideoMemory
-    newRegisters <- createRegisters
-    newPseudoRegisters <- createPseudoRegisters
-    newStack <- createStack
-    return MachineState {
-        memory = newMemory
-      , videoMemory = newVideoMemory
-      , registers = newRegisters
-      , pseudoRegisters = newPseudoRegisters
-      , stack = newStack
-    }
+createMachineState = do
+  newKeypad <- createKeypad
+  newMemory <- createMemory memorySize
+  newVideoMemory <- createVideoMemory
+  newRegisters <- createRegisters
+  newPseudoRegisters <- createPseudoRegisters
+  newStack <- createStack
+  return MachineState {
+      memory = newMemory
+    , keypad = newKeypad
+    , pseudoRegisters = newPseudoRegisters
+    , registers = newRegisters
+    , stack = newStack
+    , videoMemory = newVideoMemory
+  }
+
+setKeys :: [(Key, Bool)] -> MachineState -> IO ()
+setKeys keysPressed machineState =
+  mergeKeypad (keypad machineState) keysPressed
 
 getPC :: MachineState -> IO Address
 getPC machineState = getPseudoRegisterValue (pseudoRegisters machineState) PC
@@ -70,6 +78,4 @@ decTimers machineState = do
 decTimer :: Registers -> RegisterName -> IO ()
 decTimer registers name = do
   register <- getRegisterValue registers name
-  if register > 0 then
-    setValueAtRegister registers name (register - 1)
-  else return ()
+  when (register > 0) $ setValueAtRegister registers name (register - 1)

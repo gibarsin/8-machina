@@ -5,6 +5,7 @@ import Control.Monad.Random
 import Data.Bits
 import Fonts
 import Instruction
+import Keyboard
 import MachineState
 import Memory
 import Register
@@ -111,13 +112,20 @@ execute machineState (DRW vx vy bytesToRead) = do
   y <- getRegisterValue (registers machineState) vy
   address <- getI machineState
   erased <- drawSprite (memory machineState) (videoMemory machineState) (fromIntegral x, fromIntegral y) (fromIntegral bytesToRead) (fromIntegral address)
-  -- when (not erased) $ print erased
   setCarry machineState $ if erased then 1 else 0
-  -- printInConsole (videoMemory machineState)
 
-execute machineState (SKP vx) = return () -- TODO This currently assumes that the key with the value of Vx is not pressed
+execute machineState (SKP vx) = do
+  print "Skip if pressed"
+  registerX <- getRegisterValue (registers machineState) vx
+  pressed <- isKeyPressed (keypad machineState) registerX
+  when pressed $ incPC machineState
 
-execute machineState (SKNP vx) = incPC machineState -- TODO This assumes that the key with the value of Vx is not pressed
+execute machineState (SKNP vx) = do
+  print "Skip if not pressed"
+  registerX <- getRegisterValue (registers machineState) vx
+  pressed <- isKeyPressed (keypad machineState) registerX
+  print pressed
+  when (not pressed) $ incPC machineState
 
 execute machineState (LDRDT vx) = do
     dt <- getRegisterValue (registers machineState) DT
@@ -148,7 +156,7 @@ execute machineState (LDF vx) = do
 execute machineState (LDB vx) = do
     registerX <- getRegisterValue (registers machineState) vx
     registerI <- getI machineState
-    let (bcd0, bcd1, bcd2) =  bcd8 registerX
+    let (bcd0, bcd1, bcd2) =  bcd registerX
     setWordAtMemory (memory machineState) (registerI + 0) bcd0
     setWordAtMemory (memory machineState) (registerI + 1) bcd1
     setWordAtMemory (memory machineState) (registerI + 2) bcd2
@@ -179,7 +187,7 @@ operateRegisters machineState registerToSave registerNameA op registerNameB = do
   registerB <- getRegisterValue (registers machineState) registerNameB
   setValueAtRegister (registers machineState) registerToSave (registerA `op` registerB)
 
-bcd8 n =
+bcd n =
   case map (read . (:[])) (show n) of
     [z]     -> (0,0,z)
     [y,z]   -> (0,y,z)

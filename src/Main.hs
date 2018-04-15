@@ -16,7 +16,7 @@ import Register
 import RegisterName
 import VideoMemory
 
-import qualified SDL
+import qualified SDL as SDL
 
 main :: IO ()
 main = do
@@ -31,7 +31,8 @@ run gameROM = do
   loadGameROM (memory machineState) gameROM
   setPC machineState gameROMStartPosition
 
-  SDL.initialize [SDL.InitVideo]
+  -- SDL.initialize [SDL.InitVideo]
+  SDL.initializeAll
 
   window <- SDL.createWindow
                    "CHIP-8"
@@ -40,9 +41,12 @@ run gameROM = do
   SDL.showWindow window
 
   forever $ do
+    events <- SDL.pollEvents
+    let keyboardEvents = Prelude.filter isKeyboardEvent events
+    let keycodes = Prelude.map toKeycode keyboardEvents
+    setKeys keycodes machineState
     pc <- getPC machineState
     instruction <- fmap decodeInstruction $ fetch machineState
-    print instruction
     execute machineState instruction
     decTimers machineState
     case instruction of
@@ -55,3 +59,15 @@ run gameROM = do
         incPC machineState
       _ -> do
         incPC machineState
+
+isKeyboardEvent event = case SDL.eventPayload event of
+  SDL.KeyboardEvent _ -> True
+  _ -> False
+
+toKeycode e =
+  toKeycode' (SDL.keyboardEventKeyMotion (getKeyboardEventData (SDL.eventPayload e))) (SDL.keysymKeycode (SDL.keyboardEventKeysym (getKeyboardEventData (SDL.eventPayload e))))
+
+getKeyboardEventData (SDL.KeyboardEvent keyboardEventData) = keyboardEventData
+
+toKeycode' SDL.Pressed keycode  = (keycode, True)
+toKeycode' SDL.Released keycode  = (keycode, False)
