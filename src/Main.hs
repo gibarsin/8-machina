@@ -62,7 +62,7 @@ run options gameROM = do
   speaker <- openSpeaker
 
   frameStart <- SDL.time
-  emulate machineState window speaker frameStart
+  emulate options machineState window speaker frameStart
 
   closeSpeaker speaker
   SDL.destroyWindow window
@@ -78,23 +78,23 @@ framesPerSecond = 60
 instructionsPerFrame :: Int
 instructionsPerFrame = 10
 
-emulate :: MachineState -> SDL.Window -> Speaker -> Double -> IO ()
-emulate machineState window speaker frameStart = do
+emulate :: Options -> MachineState -> SDL.Window -> Speaker -> Double -> IO ()
+emulate options machineState window speaker frameStart = do
   events <- SDL.pollEvents
   unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keyPresses = Prelude.map toKeyPress keyboardEvents
     setKeys keyPresses machineState
-    when (Prelude.any isResizeEvent events) $ redraw machineState window
-    replicateM_ instructionsPerFrame $ step machineState window
+    when (Prelude.any isResizeEvent events) $ redraw options machineState window
+    replicateM_ instructionsPerFrame $ step options machineState window
     decTimers machineState
     soundTimer <- getRegisterValue (registers machineState) ST
     setSpeaker speaker (soundTimer > 0)
     nextFrameStart <- waitForNextFrame frameStart
-    emulate machineState window speaker nextFrameStart
+    emulate options machineState window speaker nextFrameStart
 
-step :: MachineState -> SDL.Window -> IO ()
-step machineState window = do
+step :: Options -> MachineState -> SDL.Window -> IO ()
+step options machineState window = do
   pc <- getPC machineState
   encodedInstruction <- fetch machineState
   instruction <- maybe (die $ printf "Unknown instruction 0x%04X at address 0x%03X" encodedInstruction pc)
@@ -105,14 +105,14 @@ step machineState window = do
     (JP _) -> return ()
     (CALL _) -> return ()
     (JPV0 _) -> return ()
-    CLS -> redraw machineState window >> incPC machineState
-    (DRW _ _ _) -> redraw machineState window >> incPC machineState
+    CLS -> redraw options machineState window >> incPC machineState
+    (DRW _ _ _) -> redraw options machineState window >> incPC machineState
     _ -> do
       incPC machineState
 
-redraw :: MachineState -> SDL.Window -> IO ()
-redraw machineState window = do
-  draw (videoMemory machineState) window
+redraw :: Options -> MachineState -> SDL.Window -> IO ()
+redraw options machineState window = do
+  draw (colors options) (videoMemory machineState) window
   SDL.updateWindowSurface window
 
 -- Sleeps until the current frame ends and returns when the next one starts.

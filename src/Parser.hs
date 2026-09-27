@@ -1,10 +1,15 @@
 module Parser where
+import Data.Bits (shiftR)
 import Data.Semigroup ((<>))
+import Graphics (Color, Colors (..))
+import Numeric (readHex)
 import Options.Applicative
+import Text.Printf (printf)
 
 data Options = Options
   { romPath :: FilePath
   , windowSize :: (Int, Int)
+  , colors :: Colors
   }
 
 parse :: IO Options
@@ -15,7 +20,29 @@ parserInfo = do
   info (helper <*> optionsParser) $ fullDesc <> progDesc "A CHIP-8 Emulator thinked in Functional Programming." <> header "CHIP-8 Emulator"
 
 optionsParser :: Parser Options
-optionsParser = Options <$> filePathParser <*> sizeParser
+optionsParser = Options <$> filePathParser <*> sizeParser <*> colorsParser
+
+colorsParser :: Parser Colors
+colorsParser =
+  Colors
+    <$> colorOption "foreground" (0xFF, 0xFF, 0xFF) "Color of lit pixels."
+    <*> colorOption "background" (0x00, 0x00, 0x00) "Color of unlit pixels and borders."
+
+colorOption :: String -> Color -> String -> Parser Color
+colorOption name defaultColor description =
+  option (eitherReader readColor) $
+    long name <> metavar "RRGGBB" <> value defaultColor <> showDefaultWith showColor <> help description
+
+readColor :: String -> Either String Color
+readColor text = case dropWhile (== '#') text of
+  hex
+    | length hex == 6
+    , [(rgb, "")] <- readHex hex ->
+        Right (fromIntegral (rgb `shiftR` 16 :: Int), fromIntegral (rgb `shiftR` 8), fromIntegral rgb)
+  _ -> Left $ "Invalid color " ++ show text ++ ", expected six hex digits like FF8800"
+
+showColor :: Color -> String
+showColor (red, green, blue) = printf "%02X%02X%02X" red green blue
 
 sizeParser :: Parser (Int, Int)
 sizeParser =
