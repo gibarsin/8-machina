@@ -1,7 +1,7 @@
 module Parser where
 import Data.Bits (shiftR)
 import Data.Semigroup ((<>))
-import Graphics (Color, Colors (..))
+import Frontend (Color, Colors (..))
 import Keyboard (KeyMapping, keyMappingWith, readKeyBinding)
 import Data.Char (toLower)
 import Numeric (readHex)

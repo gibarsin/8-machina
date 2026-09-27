@@ -5,14 +5,7 @@ import Control.Monad
 import  SDL
 import Data.Word (Word8)
 import Chip8.VideoMemory (Screen, pixelAt, screenHeight, screenWidth)
-
--- Red, green and blue components.
-type Color = (Word8, Word8, Word8)
-
-data Colors = Colors
-  { foregroundColor :: Color
-  , backgroundColor :: Color
-  }
+import Frontend (Color, Colors (..))
 
 -- Draws the screen at the largest whole-number pixel size that fits the
 -- window, centred, with the background color filling the rest.

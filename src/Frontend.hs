@@ -1,6 +1,16 @@
 module Frontend where
 
+import Data.Word (Word8)
+
 import Chip8.VideoMemory (Screen)
+
+-- Red, green and blue components.
+type Color = (Word8, Word8, Word8)
+
+data Colors = Colors
+  { foregroundColor :: Color
+  , backgroundColor :: Color
+  }
 
 -- The only thing the emulation loop knows about a user interface.
 data Frontend = Frontend
