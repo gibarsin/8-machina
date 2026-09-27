@@ -12,9 +12,11 @@ executable 8-machina
   main-is:          Main.hs
   hs-source-dirs:   src
   other-modules:    CPU
+                  , Chip8.Keypad
                   , Chip8.Memory
                   , Chip8.Register
                   , Chip8.Stack
+                  , Chip8.VideoMemory
                   , Fonts
                   , GameROMLoader
                   , Graphics
