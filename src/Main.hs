@@ -17,15 +17,30 @@ import RegisterName
 import Sound
 import VideoMemory
 
+import Control.Exception (try)
 import qualified SDL as SDL
 import System.Exit (die)
+import System.IO.Error (ioeGetErrorString)
 import Text.Printf (printf)
 
 main :: IO ()
 main = do
   gamePath <- parse
-  gameROM <- Data.ByteString.readFile gamePath
+  gameROM <- loadROMFile gamePath
   run gameROM
+
+loadROMFile :: FilePath -> IO ByteString
+loadROMFile path = do
+  contents <- try (Data.ByteString.readFile path)
+  case contents of
+    Left err -> die $ printf "Could not read ROM file %s: %s" path (ioeGetErrorString err)
+    Right rom
+      | romSize rom > maxROMSize ->
+          die $ printf "ROM file %s is too large: %d bytes (at most %d fit in memory)" path (romSize rom) maxROMSize
+      | otherwise -> return rom
+  where
+    romSize = Data.ByteString.length
+    maxROMSize = fromIntegral (memorySize - gameROMStartPosition)
 
 run :: ByteString -> IO ()
 run gameROM = do
