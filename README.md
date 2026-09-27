@@ -76,7 +76,7 @@ cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Ri
 
 Changelog
 ---------
-### Unreleased
+### 1.4 (September 2026)
   - Separate the emulation loop from SDL behind a Frontend interface (Emulator.hs), so a second front-end can be added without duplicating the loop
 
 ### 1.3 (September 2026)

@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               eight-machina
-version:            1.3
+version:            1.4
 synopsis:           A CHIP-8 emulator thought in the functional paradigm and written in Haskell.
 license:            MIT
 license-file:       LICENSE
