@@ -4,15 +4,87 @@
 
 Getting Started
 ---------------
-This section is a work in progress. Being 15 April 2018, the project is 2 weeks old. It is my intention to work on the build-run process with easiness in mind, using [stack](https://github.com/commercialhaskell/stack) as the main developing tool.
+The emulator is built with [cabal](https://www.haskell.org/cabal/) and uses [SDL2](https://www.libsdl.org/) for graphics, keyboard and sound. Install GHC and cabal with [GHCup](https://www.haskell.org/ghcup/), then follow the steps for your system.
+
+### Linux and macOS
+Install SDL2 and pkg-config with your package manager:
+
+```sh
+sudo apt install libsdl2-dev pkg-config   # Debian / Ubuntu
+brew install sdl2 pkg-config              # macOS
+```
+
+Build and run a game:
+
+```sh
+cabal run 8-machina -- games/BRIX
+```
+
+### Windows
+GHCup installs its own MSYS2 in `C:\ghcup\msys64`. Install SDL2 from its UCRT64 environment:
+
+```sh
+C:\ghcup\msys64\usr\bin\bash.exe -lc "pacman -S mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-pkgconf"
+```
+
+Point cabal to those libraries in your cabal config (`C:\cabal\config` by default):
+
+```
+extra-include-dirs: C:\ghcup\msys64\ucrt64\include
+extra-lib-dirs:     C:\ghcup\msys64\ucrt64\lib, C:\ghcup\msys64\ucrt64\bin
+extra-prog-path:    C:\ghcup\msys64\ucrt64\bin, C:\ghcup\msys64\usr\bin
+```
+
+GHC's bundled toolchain cannot link `SDL2main`, which the emulator does not need. Copy `C:\ghcup\msys64\ucrt64\lib\pkgconfig\sdl2.pc` into a folder of your choice, remove `-lmingw32 -mwindows -lSDL2main` from its `Libs` line and `-Dmain=SDL_main` from its `Cflags` line, and add that folder to the `PKG_CONFIG_PATH` environment variable.
+
+Build and run a game, with `SDL2.dll` on the `PATH`:
+
+```powershell
+$env:Path = "C:\ghcup\msys64\ucrt64\bin;$env:Path"
+cabal run 8-machina -- games\BRIX
+```
+
+Controls
+--------
+The CHIP-8 keypad is mapped to the left side of the keyboard:
+
+```
+Keyboard        CHIP-8
+1 2 3 4         1 2 3 C
+Q W E R         4 5 6 D
+A S D F         7 8 9 E
+Z X C V         A 0 B F
+```
+
+Other keys are ignored. Close the window to quit.
+
+Changelog
+---------
+### 1.1 (September 2026)
+  - Add cabal build configuration
+  - Add sound
+  - Limit emulation speed to 600 instructions per second
+  - Implement clear screen (`00E0`) and wait for key (`Fx0A`) instructions
+  - Ignore machine code calls (`0nnn`)
+  - Count down delay and sound timers at 60 Hz
+  - Quit when the window is closed
+  - Ignore unmapped keys instead of crashing
+  - Set `VF` after writing arithmetic results
+  - Report no borrow when subtracting equal values
+  - Report unknown instructions, stack overflow and underflow, and unreadable or oversized ROM files with clear messages
+  - Remove debug output
+
+### 1.0 (April 2018)
+  - First version, developed during the functional programming course at ITBA (Instituto Tecnológico de Buenos Aires)
 
 Features To Develop
 -------------------
-  - Add and customize sound
+  - Customize sound
   - Customize display colors
   - Customize display scale
   - Customize keypad mapping
   - Customize emulation speed
+  - Support the quirks of different CHIP-8 interpreters
   - Use [brick](https://github.com/jtdaugherty/brick) as UI library
 
 To Refactor
