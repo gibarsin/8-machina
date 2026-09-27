@@ -24,6 +24,7 @@ executable 8-machina
                   , Chip8.RegisterName
                   , Chip8.Stack
                   , Chip8.VideoMemory
+                  , Emulator
                   , Graphics
                   , Keyboard
                   , Parser
