@@ -40,33 +40,56 @@ run gameROM = do
                    { SDL.windowInitialSize = SDL.V2 (fromIntegral width * scale) (fromIntegral height * scale) }
   SDL.showWindow window
 
-  emulate machineState window
+  frameStart <- SDL.time
+  emulate machineState window frameStart
 
   SDL.destroyWindow window
   SDL.quit
 
-emulate :: MachineState -> SDL.Window -> IO ()
-emulate machineState window = do
+framesPerSecond :: Double
+framesPerSecond = 60
+
+-- The CHIP-8 has no official clock speed; about 600 instructions per
+-- second runs most games at their intended pace.
+instructionsPerFrame :: Int
+instructionsPerFrame = 10
+
+emulate :: MachineState -> SDL.Window -> Double -> IO ()
+emulate machineState window frameStart = do
   events <- SDL.pollEvents
   unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keycodes = Prelude.map toKeycode keyboardEvents
     setKeys keycodes machineState
-    pc <- getPC machineState
-    instruction <- fmap decodeInstruction $ fetch machineState
-    execute machineState instruction
-    decTimers machineState
-    case instruction of
-      (JP _) -> return ()
-      (CALL _) -> return ()
-      (JPV0 _) -> return ()
-      (DRW _ _ _) -> do
-        draw (videoMemory machineState) window
-        SDL.updateWindowSurface window
-        incPC machineState
-      _ -> do
-        incPC machineState
-    emulate machineState window
+    replicateM_ instructionsPerFrame $ step machineState window
+    nextFrameStart <- waitForNextFrame frameStart
+    emulate machineState window nextFrameStart
+
+step :: MachineState -> SDL.Window -> IO ()
+step machineState window = do
+  instruction <- fmap decodeInstruction $ fetch machineState
+  execute machineState instruction
+  decTimers machineState
+  case instruction of
+    (JP _) -> return ()
+    (CALL _) -> return ()
+    (JPV0 _) -> return ()
+    (DRW _ _ _) -> do
+      draw (videoMemory machineState) window
+      SDL.updateWindowSurface window
+      incPC machineState
+    _ -> do
+      incPC machineState
+
+-- Sleeps until the current frame ends and returns when the next one starts.
+-- If emulation fell behind, the next frame starts now instead of trying to
+-- catch up.
+waitForNextFrame :: Double -> IO Double
+waitForNextFrame frameStart = do
+  now <- SDL.time
+  let frameEnd = frameStart + 1 / framesPerSecond
+  when (now < frameEnd) $ SDL.delay (floor ((frameEnd - now) * 1000))
+  return (max frameEnd now)
 
 isQuitEvent event = case SDL.eventPayload event of
   SDL.QuitEvent -> True
