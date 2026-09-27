@@ -116,16 +116,13 @@ execute machineState (DRW vx vy bytesToRead) = do
   setCarry machineState $ if erased then 1 else 0
 
 execute machineState (SKP vx) = do
-  print "Skip if pressed"
   registerX <- getRegisterValue (registers machineState) vx
   pressed <- isKeyPressed (keypad machineState) registerX
   when pressed $ incPC machineState
 
 execute machineState (SKNP vx) = do
-  print "Skip if not pressed"
   registerX <- getRegisterValue (registers machineState) vx
   pressed <- isKeyPressed (keypad machineState) registerX
-  print pressed
   when (not pressed) $ incPC machineState
 
 execute machineState (LDRDT vx) = do
