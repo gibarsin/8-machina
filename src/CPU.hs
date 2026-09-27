@@ -11,6 +11,8 @@ import Memory
 import Register
 import RegisterName
 import Stack
+import System.Exit (die)
+import Text.Printf (printf)
 import VideoMemory
 
 fetch :: MachineState -> IO WordEncodedInstruction
@@ -29,14 +31,18 @@ execute machineState (CLS) = clearVideoMemory (videoMemory machineState)
 
 execute machineState (RET) = do
   addressPopped <- pop (stack machineState)
-  setPC machineState addressPopped
+  case addressPopped of
+    Just address -> setPC machineState address
+    Nothing -> stackError machineState "Return with an empty stack"
 
 execute machineState (JP address) = setPC machineState address
 
 execute machineState (CALL address) = do
   currPC <- getPC machineState
-  push (stack machineState) currPC
-  setPC machineState address
+  pushed <- push (stack machineState) currPC
+  if pushed
+    then setPC machineState address
+    else stackError machineState "Stack overflow: more than 16 nested calls"
 
 execute machineState (SERB vx value) = do
   registerValue <- getRegisterValue (registers machineState) vx
@@ -182,6 +188,11 @@ execute machineState (LDRI vx) = do
       incI machineState
       return $ a + 1
       ) 0 [V0 .. vx]
+
+stackError :: MachineState -> String -> IO ()
+stackError machineState problem = do
+  pc <- getPC machineState
+  die $ printf "%s at address 0x%03X" problem pc
 
 operateRegisters machineState registerToSave registerNameA op registerNameB = do
   registerA <- getRegisterValue (registers machineState) registerNameA
