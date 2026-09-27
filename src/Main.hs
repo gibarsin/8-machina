@@ -6,8 +6,11 @@ import Control.Exception (try)
 import Control.Monad
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import Data.Char (ord, toLower)
+import Data.Maybe (catMaybes)
 import qualified SDL
 import System.Exit (die)
+import System.IO (hPutStrLn, stderr)
 import System.IO.Error (ioeGetErrorString)
 import System.Random (initStdGen)
 import Text.Printf (printf)
@@ -16,6 +19,7 @@ import Chip8.CPU (Frame (..), errorMessage, runFrame)
 import Chip8.Machine (Machine (..), newMachine, programStart)
 import Chip8.Memory (memorySize)
 import Chip8.VideoMemory (screenHeight, screenWidth)
+import Frontend (Input (..), PhysicalKey (..))
 import Graphics
 import Keyboard
 import Parser
@@ -69,15 +73,16 @@ framesPerSecond = 60
 emulate :: Options -> SDL.Window -> Speaker -> Double -> Double -> Machine -> IO ()
 emulate options window speaker frameStart carriedInstructions machine = do
   events <- SDL.pollEvents
-  unless (any isQuitEvent events) $ do
+  inputs <- catMaybes <$> mapM toInput events
+  unless (QuitRequested `elem` inputs) $ do
     when (any isResizeEvent events) $ do
       snapWindowSize window
       draw (colors options) (screen machine) window
-    let keyPresses = map toKeyPress (filter isKeyboardEvent events)
-        pressedKeys = updateKeypad (keyMapping options) keyPresses (keypad machine)
+    let pressedKeys = updateKeypad (keyMapping options) inputs (keypad machine)
         instructionBudget = carriedInstructions + fromIntegral (speed options) / framesPerSecond
         instructionsThisFrame = floor instructionBudget
-    logUnmappedKeys (keyMapping options) keyPresses
+    mapM_ (\name -> hPutStrLn stderr ("Ignoring unmapped key: " ++ name))
+          (unmappedKeyNames (keyMapping options) inputs)
     case runFrame instructionsThisFrame pressedKeys machine of
       Left emulatorError -> die (errorMessage emulatorError)
       Right (nextMachine, frame) -> do
@@ -107,22 +112,41 @@ waitForNextFrame frameStart = do
   when (now < frameEnd) $ SDL.delay (floor ((frameEnd - now) * 1000))
   return (max frameEnd now)
 
-isQuitEvent event = case SDL.eventPayload event of
-  SDL.QuitEvent -> True
-  _ -> False
-
+isResizeEvent :: SDL.Event -> Bool
 isResizeEvent event = case SDL.eventPayload event of
   SDL.WindowSizeChangedEvent _ -> True
   _ -> False
 
-isKeyboardEvent event = case SDL.eventPayload event of
-  SDL.KeyboardEvent _ -> True
-  _ -> False
+-- Temporary: duplicated in Frontend/SDL.hs (Task 2) and removed from here
+-- in Task 3, once Main.hs stops handling SDL events itself.
+toInput :: SDL.Event -> IO (Maybe Input)
+toInput event = case SDL.eventPayload event of
+  SDL.QuitEvent -> return (Just QuitRequested)
+  SDL.KeyboardEvent keyEvent -> do
+    key <- toPhysicalKey (SDL.keyboardEventKeysym keyEvent)
+    return $ Just $ case SDL.keyboardEventKeyMotion keyEvent of
+      SDL.Pressed  -> KeyDown key
+      SDL.Released -> KeyUp key
+  _ -> return Nothing
 
-toKeyPress e =
-  toKeyPress' (SDL.keyboardEventKeyMotion (getKeyboardEventData (SDL.eventPayload e))) (SDL.keyboardEventKeysym (getKeyboardEventData (SDL.eventPayload e)))
+toPhysicalKey :: SDL.Keysym -> IO PhysicalKey
+toPhysicalKey keysym = case lookup (SDL.keysymKeycode keysym) namedKeycodes of
+  Just key -> return key
+  Nothing -> OtherKey <$> SDL.getScancodeName (SDL.keysymScancode keysym)
 
-getKeyboardEventData (SDL.KeyboardEvent keyboardEventData) = keyboardEventData
+-- SDL gives letter and digit keys the code of their lowercase character.
+characterKeycode :: Char -> SDL.Keycode
+characterKeycode character = SDL.Keycode (fromIntegral (ord (toLower character)))
 
-toKeyPress' SDL.Pressed key  = (key, True)
-toKeyPress' SDL.Released key  = (key, False)
+namedKeycodes :: [(SDL.Keycode, PhysicalKey)]
+namedKeycodes =
+  [ (characterKeycode c, CharKey c) | c <- ['A' .. 'Z'] ++ ['0' .. '9'] ]
+  ++ zip [SDL.KeycodeKP0, SDL.KeycodeKP1, SDL.KeycodeKP2, SDL.KeycodeKP3, SDL.KeycodeKP4
+         , SDL.KeycodeKP5, SDL.KeycodeKP6, SDL.KeycodeKP7, SDL.KeycodeKP8, SDL.KeycodeKP9]
+         (map KeypadKey [0 .. 9])
+  ++ [ (SDL.KeycodeUp, ArrowUp), (SDL.KeycodeDown, ArrowDown), (SDL.KeycodeLeft, ArrowLeft), (SDL.KeycodeRight, ArrowRight)
+     , (SDL.KeycodeSpace, SpaceKey), (SDL.KeycodeReturn, EnterKey)
+     , (SDL.KeycodeTab, TabKey), (SDL.KeycodeBackspace, BackspaceKey)
+     , (SDL.KeycodeLShift, LeftShiftKey), (SDL.KeycodeRShift, RightShiftKey)
+     , (SDL.KeycodeLCtrl, LeftCtrlKey), (SDL.KeycodeRCtrl, RightCtrlKey)
+     ]
