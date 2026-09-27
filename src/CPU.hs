@@ -77,7 +77,7 @@ execute machineState (SUB vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
   setValueAtRegister (registers machineState) vx (registerX - registerY)
-  setCarry machineState $ if registerX > registerY then 1 else 0
+  setCarry machineState $ if registerX >= registerY then 1 else 0
 
 execute machineState (SHR vx vy) = do
   registerY <- getRegisterValue (registers machineState) vy
@@ -88,7 +88,7 @@ execute machineState (SUBN vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
   setValueAtRegister (registers machineState) vx (registerY - registerX)
-  setCarry machineState $ if registerY > registerX then 1 else 0
+  setCarry machineState $ if registerY >= registerX then 1 else 0
 
 execute machineState (SHL vx vy) = do
   registerY <- getRegisterValue (registers machineState) vy
