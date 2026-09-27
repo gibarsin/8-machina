@@ -7,6 +7,7 @@ import Data.Char (toLower)
 import Numeric (readHex)
 import Options.Applicative
 import Chip8.Interpreter (Interpreter, cosmac, interpreterProfiles)
+import Chip8.VideoMemory (screenHeight, screenWidth)
 import Text.Printf (printf)
 
 data Options = Options
@@ -107,25 +108,25 @@ sizeParser :: Parser (Int, Int)
 sizeParser =
   option (eitherReader readSize) $
     long "size" <> metavar "WIDTHxHEIGHT" <> value (1024, 512) <> showDefaultWith showSize
-      <> help "Initial window size, a multiple of 64x32. The window can be resized while playing."
+      <> help ("Initial window size, a multiple of " ++ showSize (screenWidth, screenHeight) ++ ". The window can be resized while playing.")
 
--- Only exact multiples of 64x32, so every CHIP-8 pixel is the same size
--- and the screen fills the window.
+-- Only exact multiples of the screen size, so every CHIP-8 pixel is the
+-- same size and the screen fills the window.
 readSize :: String -> Either String (Int, Int)
 readSize text = case break (== 'x') text of
   (widthText, 'x' : heightText)
     | [(width, "")] <- reads widthText
     , [(height, "")] <- reads heightText ->
-        if width >= 64 && width `mod` 64 == 0 && height * 2 == width
+        if width >= screenWidth && width `mod` screenWidth == 0 && height * screenWidth == width * screenHeight
           then Right (width, height)
-          else Left $ "Invalid size " ++ show text ++ ", expected a multiple of 64x32 such as "
+          else Left $ "Invalid size " ++ show text ++ ", expected a multiple of " ++ showSize (screenWidth, screenHeight) ++ " such as "
                  ++ suggestions width
   _ -> Left $ "Invalid size " ++ show text ++ ", expected WIDTHxHEIGHT such as 1024x512"
   where
-    suggestions width = case filter (>= 1) [width `div` 64, width `div` 64 + 1] of
+    suggestions width = case filter (>= 1) [width `div` screenWidth, width `div` screenWidth + 1] of
       [smaller, larger] | smaller /= larger -> showSize (sizeFor smaller) ++ " or " ++ showSize (sizeFor larger)
       multiples -> showSize (sizeFor (last multiples))
-    sizeFor multiple = (64 * multiple, 32 * multiple)
+    sizeFor multiple = (screenWidth * multiple, screenHeight * multiple)
 
 showSize :: (Int, Int) -> String
 showSize (width, height) = show width ++ "x" ++ show height
