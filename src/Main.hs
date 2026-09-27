@@ -62,6 +62,7 @@ emulate machineState window frameStart = do
     let keycodes = Prelude.map toKeycode keyboardEvents
     setKeys keycodes machineState
     replicateM_ instructionsPerFrame $ step machineState window
+    decTimers machineState
     nextFrameStart <- waitForNextFrame frameStart
     emulate machineState window nextFrameStart
 
@@ -69,7 +70,6 @@ step :: MachineState -> SDL.Window -> IO ()
 step machineState window = do
   instruction <- fmap decodeInstruction $ fetch machineState
   execute machineState instruction
-  decTimers machineState
   case instruction of
     (JP _) -> return ()
     (CALL _) -> return ()
