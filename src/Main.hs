@@ -62,7 +62,7 @@ run options gameROM = do
   speaker <- openSpeaker
 
   frameStart <- SDL.time
-  emulate options machineState window speaker frameStart
+  emulate options machineState window speaker frameStart 0
 
   closeSpeaker speaker
   SDL.destroyWindow window
@@ -73,25 +73,25 @@ run options gameROM = do
 framesPerSecond :: Double
 framesPerSecond = 60
 
--- The CHIP-8 has no official clock speed; about 600 instructions per
--- second runs most games at their intended pace.
-instructionsPerFrame :: Int
-instructionsPerFrame = 10
-
-emulate :: Options -> MachineState -> SDL.Window -> Speaker -> Double -> IO ()
-emulate options machineState window speaker frameStart = do
+-- Each frame adds speed / 60 instructions to the budget and runs the whole
+-- part of it; the fraction carries over, so any speed averages out exactly.
+emulate :: Options -> MachineState -> SDL.Window -> Speaker -> Double -> Double -> IO ()
+emulate options machineState window speaker frameStart carriedInstructions = do
   events <- SDL.pollEvents
   unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keyPresses = Prelude.map toKeyPress keyboardEvents
     setKeys keyPresses machineState
     when (Prelude.any isResizeEvent events) $ redraw options machineState window
-    replicateM_ instructionsPerFrame $ step options machineState window
+    let instructionBudget = carriedInstructions + fromIntegral (speed options) / framesPerSecond
+        instructionsThisFrame = floor instructionBudget
+    replicateM_ instructionsThisFrame $ step options machineState window
     decTimers machineState
     soundTimer <- getRegisterValue (registers machineState) ST
     setSpeaker speaker (soundTimer > 0)
     nextFrameStart <- waitForNextFrame frameStart
     emulate options machineState window speaker nextFrameStart
+            (instructionBudget - fromIntegral instructionsThisFrame)
 
 step :: Options -> MachineState -> SDL.Window -> IO ()
 step options machineState window = do

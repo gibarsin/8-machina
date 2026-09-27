@@ -10,6 +10,7 @@ data Options = Options
   { romPath :: FilePath
   , windowSize :: (Int, Int)
   , colors :: Colors
+  , speed :: Int
   }
 
 parse :: IO Options
@@ -20,7 +21,20 @@ parserInfo = do
   info (helper <*> optionsParser) $ fullDesc <> progDesc "A CHIP-8 Emulator thinked in Functional Programming." <> header "CHIP-8 Emulator"
 
 optionsParser :: Parser Options
-optionsParser = Options <$> filePathParser <*> sizeParser <*> colorsParser
+optionsParser = Options <$> filePathParser <*> sizeParser <*> colorsParser <*> speedParser
+
+-- The CHIP-8 has no official clock speed; about 600 instructions per
+-- second runs most games at their intended pace.
+speedParser :: Parser Int
+speedParser =
+  option (eitherReader readSpeed) $
+    long "speed" <> metavar "N" <> value 600 <> showDefault
+      <> help "Instructions executed per second."
+
+readSpeed :: String -> Either String Int
+readSpeed text = case reads text of
+  [(instructions, "")] | instructions >= 1 -> Right instructions
+  _ -> Left $ "Invalid speed " ++ show text ++ ", expected a whole number of at least 1"
 
 colorsParser :: Parser Colors
 colorsParser =
