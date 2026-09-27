@@ -14,6 +14,7 @@ import Memory
 import Parser
 import Register
 import RegisterName
+import Sound
 import VideoMemory
 
 import qualified SDL as SDL
@@ -39,10 +40,12 @@ run gameROM = do
                    SDL.defaultWindow
                    { SDL.windowInitialSize = SDL.V2 (fromIntegral width * scale) (fromIntegral height * scale) }
   SDL.showWindow window
+  speaker <- openSpeaker
 
   frameStart <- SDL.time
-  emulate machineState window frameStart
+  emulate machineState window speaker frameStart
 
+  closeSpeaker speaker
   SDL.destroyWindow window
   SDL.quit
 
@@ -54,8 +57,8 @@ framesPerSecond = 60
 instructionsPerFrame :: Int
 instructionsPerFrame = 10
 
-emulate :: MachineState -> SDL.Window -> Double -> IO ()
-emulate machineState window frameStart = do
+emulate :: MachineState -> SDL.Window -> Speaker -> Double -> IO ()
+emulate machineState window speaker frameStart = do
   events <- SDL.pollEvents
   unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
@@ -63,8 +66,10 @@ emulate machineState window frameStart = do
     setKeys keycodes machineState
     replicateM_ instructionsPerFrame $ step machineState window
     decTimers machineState
+    soundTimer <- getRegisterValue (registers machineState) ST
+    setSpeaker speaker (soundTimer > 0)
     nextFrameStart <- waitForNextFrame frameStart
-    emulate machineState window nextFrameStart
+    emulate machineState window speaker nextFrameStart
 
 step :: MachineState -> SDL.Window -> IO ()
 step machineState window = do

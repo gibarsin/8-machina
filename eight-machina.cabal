@@ -22,6 +22,7 @@ executable 8-machina
                   , Parser
                   , Register
                   , RegisterName
+                  , Sound
                   , Stack
                   , VideoMemory
   build-depends:    base >=4.12 && <5
@@ -33,5 +34,6 @@ executable 8-machina
                   , random
                   , sdl2 >=2.5
                   , split
+                  , vector
   default-language: Haskell2010
   ghc-options:      -threaded
