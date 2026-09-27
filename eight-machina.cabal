@@ -28,6 +28,7 @@ executable 8-machina
                   , Graphics
                   , Keyboard
                   , Parser
+                  , Rom
                   , Sound
   build-depends:    base >=4.12 && <5
                   , bytestring
