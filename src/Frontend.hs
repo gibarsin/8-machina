@@ -12,6 +12,10 @@ data Colors = Colors
   , backgroundColor :: Color
   }
 
+-- Which user interface to drive the emulator with.
+data FrontendKind = UseSdlFrontend | UseTerminalFrontend
+  deriving (Eq)
+
 -- The only thing the emulation loop knows about a user interface.
 data Frontend = Frontend
   { pollInput :: IO [Input]

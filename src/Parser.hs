@@ -1,7 +1,7 @@
 module Parser where
 import Data.Bits (shiftR)
 import Data.Semigroup ((<>))
-import Frontend (Color, Colors (..))
+import Frontend (Color, Colors (..), FrontendKind (..))
 import Keyboard (KeyMapping, keyMappingWith, readKeyBinding)
 import Data.Char (toLower)
 import Numeric (readHex)
@@ -19,6 +19,7 @@ data Options = Options
   , tone :: Int
   , volume :: Int
   , interpreterProfile :: Interpreter
+  , frontendKind :: FrontendKind
   }
 
 parse :: IO Options
@@ -31,7 +32,19 @@ parserInfo = do
 optionsParser :: Parser Options
 optionsParser =
   Options <$> filePathParser <*> sizeParser <*> colorsParser <*> speedParser <*> keyMappingParser
-    <*> toneParser <*> volumeParser <*> interpreterParser
+    <*> toneParser <*> volumeParser <*> interpreterParser <*> frontendKindParser
+
+frontendKindParser :: Parser FrontendKind
+frontendKindParser =
+  option (eitherReader readFrontendKind) $
+    long "frontend" <> metavar "NAME" <> value UseSdlFrontend <> showDefaultWith (const "sdl")
+      <> help "User interface to use: sdl (a window) or terminal (draws in the current terminal; Esc quits)."
+
+readFrontendKind :: String -> Either String FrontendKind
+readFrontendKind text = case map toLower text of
+  "sdl" -> Right UseSdlFrontend
+  "terminal" -> Right UseTerminalFrontend
+  _ -> Left $ "Invalid frontend " ++ show text ++ ", expected sdl or terminal"
 
 interpreterParser :: Parser Interpreter
 interpreterParser =
