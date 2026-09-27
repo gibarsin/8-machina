@@ -44,7 +44,7 @@ loadROMFile path = do
 
 run :: Options -> ByteString -> IO ()
 run options gameROM = do
-  machineState <- createMachineState
+  machineState <- createMachineState (quirksProfile options)
   loadFonts $ memory machineState
   loadGameROM (memory machineState) gameROM
   setPC machineState gameROMStartPosition

@@ -20,6 +20,7 @@ executable 8-machina
                   , MachineState
                   , Memory
                   , Parser
+                  , Quirks
                   , Register
                   , RegisterName
                   , Sound

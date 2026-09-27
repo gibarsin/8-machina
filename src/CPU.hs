@@ -8,6 +8,7 @@ import Instruction
 import Keyboard
 import MachineState
 import Memory
+import Quirks
 import Register
 import RegisterName
 import Stack
@@ -65,11 +66,11 @@ execute machineState (LDRR vx vy) = do
   registerY <- getRegisterValue (registers machineState) vy
   setValueAtRegister (registers machineState) vx registerY
 
-execute machineState (OR vx vy) = operateRegisters machineState vx vx (.|.) vy
+execute machineState (OR vx vy) = logicOperation machineState vx (.|.) vy
 
-execute machineState (AND vx vy) = operateRegisters machineState vx vx (.&.) vy
+execute machineState (AND vx vy) = logicOperation machineState vx (.&.) vy
 
-execute machineState (XOR vx vy) = operateRegisters machineState vx vx xor vy
+execute machineState (XOR vx vy) = logicOperation machineState vx xor vy
 
 -- The arithmetic instructions write VF after the result, so the flag wins
 -- when VF is also the destination register.
@@ -86,9 +87,9 @@ execute machineState (SUB vx vy) = do
   setCarry machineState $ if registerX >= registerY then 1 else 0
 
 execute machineState (SHR vx vy) = do
-  registerY <- getRegisterValue (registers machineState) vy
-  setValueAtRegister (registers machineState) vx (registerY `shiftR` 1)
-  setCarry machineState $ registerY .&. 0x1
+  source <- getRegisterValue (registers machineState) (shiftSource machineState vx vy)
+  setValueAtRegister (registers machineState) vx (source `shiftR` 1)
+  setCarry machineState $ source .&. 0x1
 
 execute machineState (SUBN vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
@@ -97,9 +98,9 @@ execute machineState (SUBN vx vy) = do
   setCarry machineState $ if registerY >= registerX then 1 else 0
 
 execute machineState (SHL vx vy) = do
-  registerY <- getRegisterValue (registers machineState) vy
-  setValueAtRegister (registers machineState) vx (registerY `shiftL` 1)
-  setCarry machineState $ if (registerY .&. 0x80) == 0x80 then 1 else 0
+  source <- getRegisterValue (registers machineState) (shiftSource machineState vx vy)
+  setValueAtRegister (registers machineState) vx (source `shiftL` 1)
+  setCarry machineState $ if (source .&. 0x80) == 0x80 then 1 else 0
 
 execute machineState (SNERR vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
@@ -109,8 +110,11 @@ execute machineState (SNERR vx vy) = do
 execute machineState (LDI address) = setI machineState address
 
 execute machineState (JPV0 address) = do
-  v0 <- getRegisterValue (registers machineState) V0
-  setPC machineState (address + fromIntegral v0)
+  let offsetRegister
+        | jumpUsesV0 (quirks machineState) = V0
+        | otherwise = getRegisterNameByNumber (fromIntegral (address `shiftR` 8))
+  offset <- getRegisterValue (registers machineState) offsetRegister
+  setPC machineState (address + fromIntegral offset)
 
 execute machineState (RND vx value) = do
   random <- getStdRandom (randomR (0, 255)) :: IO WordRegister
@@ -120,7 +124,7 @@ execute machineState (DRW vx vy bytesToRead) = do
   x <- getRegisterValue (registers machineState) vx
   y <- getRegisterValue (registers machineState) vy
   address <- getI machineState
-  erased <- drawSprite (memory machineState) (videoMemory machineState) (fromIntegral x, fromIntegral y) (fromIntegral bytesToRead) (fromIntegral address)
+  erased <- drawSprite (clipSprites (quirks machineState)) (memory machineState) (videoMemory machineState) (fromIntegral x, fromIntegral y) (fromIntegral bytesToRead) (fromIntegral address)
   setCarry machineState $ if erased then 1 else 0
 
 execute machineState (SKP vx) = do
@@ -171,23 +175,33 @@ execute machineState (LDB vx) = do
     setWordAtMemory (memory machineState) (registerI + 2) bcd2
 
 execute machineState (LDIR vx) = do
-
-    foldM_ (\a registerName -> do
-      registerI <- getI machineState
+    registerI <- getI machineState
+    forM_ (zip [0 ..] [V0 .. vx]) $ \(offset, registerName) -> do
       valueToStore <- getRegisterValue (registers machineState) registerName
-      setWordAtMemory (memory machineState) (registerI) valueToStore
-      incI machineState
-      return $ a + 1
-      ) 0 [V0 .. vx]
+      setWordAtMemory (memory machineState) (registerI + offset) valueToStore
+    moveIAfterRegisters machineState registerI vx
 
 execute machineState (LDRI vx) = do
-    foldM_ (\a registerName -> do
-      registerI <- getI machineState
-      valueToStore <- getWordFromMemory (memory machineState) (registerI)
+    registerI <- getI machineState
+    forM_ (zip [0 ..] [V0 .. vx]) $ \(offset, registerName) -> do
+      valueToStore <- getWordFromMemory (memory machineState) (registerI + offset)
       setValueAtRegister (registers machineState) registerName valueToStore
-      incI machineState
-      return $ a + 1
-      ) 0 [V0 .. vx]
+    moveIAfterRegisters machineState registerI vx
+
+-- The COSMAC VIP leaves I after the last register saved or loaded.
+moveIAfterRegisters :: MachineState -> Address -> RegisterName -> IO ()
+moveIAfterRegisters machineState registerI vx =
+  when (loadStoreIncrementsI (quirks machineState)) $
+    setI machineState (registerI + fromIntegral (length [V0 .. vx]))
+
+logicOperation machineState vx op vy = do
+  operateRegisters machineState vx vx op vy
+  when (logicResetsVF (quirks machineState)) $ setCarry machineState 0
+
+shiftSource :: MachineState -> RegisterName -> RegisterName -> RegisterName
+shiftSource machineState vx vy
+  | shiftUsesVy (quirks machineState) = vy
+  | otherwise = vx
 
 stackError :: MachineState -> String -> IO ()
 stackError machineState problem = do

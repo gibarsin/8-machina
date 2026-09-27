@@ -3,6 +3,7 @@ module MachineState where
 import Control.Monad
 import Keyboard
 import Memory
+import Quirks
 import Register
 import RegisterName
 import Stack
@@ -16,6 +17,7 @@ data MachineState = MachineState
   , registers :: Registers
   , stack :: Stack
   , videoMemory :: VideoMemory
+  , quirks :: Quirks
   }
 
 memorySize :: Address
@@ -23,8 +25,8 @@ memorySize = 4096
 
 twoByteWords = 2
 
-createMachineState :: IO MachineState
-createMachineState = do
+createMachineState :: Quirks -> IO MachineState
+createMachineState machineQuirks = do
   newKeypad <- createKeypad
   newMemory <- createMemory memorySize
   newVideoMemory <- createVideoMemory
@@ -38,6 +40,7 @@ createMachineState = do
     , registers = newRegisters
     , stack = newStack
     , videoMemory = newVideoMemory
+    , quirks = machineQuirks
   }
 
 setKeys :: KeyMapping -> [(Key, Bool)] -> MachineState -> IO ()
