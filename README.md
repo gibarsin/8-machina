@@ -76,7 +76,7 @@ cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Ri
 
 Changelog
 ---------
-### Unreleased
+### 1.3 (September 2026)
   - Rewrite the emulator core as pure functions, independent of the IO Monad. SDL is only used by the front-end.
   - Rename `--quirks` to `--interpreter`. This breaks the command line, but the project has no known users, so it ships as a minor version.
   - Draw the screen once per frame instead of after every drawing instruction
