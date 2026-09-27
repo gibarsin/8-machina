@@ -7,7 +7,7 @@ module Chip8.Register
 
 import qualified Data.Vector.Unboxed as Vector
 import Data.Word (Word8)
-import RegisterName (RegisterName)
+import Chip8.RegisterName (RegisterName)
 
 -- The sixteen general-purpose registers, V0 to VF.
 newtype Registers = Registers (Vector.Vector Word8)

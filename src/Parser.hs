@@ -6,7 +6,7 @@ import Keyboard (KeyMapping, keyMappingWith, readKeyBinding)
 import Data.Char (toLower)
 import Numeric (readHex)
 import Options.Applicative
-import Quirks (Quirks, cosmac, quirksProfiles)
+import Chip8.Quirks (Quirks, cosmac, quirksProfiles)
 import Text.Printf (printf)
 
 data Options = Options

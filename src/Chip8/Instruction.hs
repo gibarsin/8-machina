@@ -1,12 +1,10 @@
-module Instruction where
+module Chip8.Instruction where
 
-import Control.Monad
 import Data.Word (Word8, Word16)
 import Data.Bits
 
-import Memory
-import Register
-import RegisterName
+import Chip8.Memory (Address)
+import Chip8.RegisterName
 
 type WordEncodedInstruction = Word16
 

@@ -1,10 +1,9 @@
 module Keyboard where
 
 import Control.Monad
-import Data.Array.IO
 import Data.Char (isHexDigit, digitToInt, ord, toLower, toUpper)
 import qualified Data.Map as Map
-import Data.Maybe (isNothing, listToMaybe, mapMaybe)
+import Data.Maybe (isNothing, mapMaybe)
 import Data.Word
 import qualified SDL
 import SDL.Input.Keyboard
@@ -12,29 +11,10 @@ import System.IO (hPutStrLn, stderr)
 
 import qualified Chip8.Keypad as Keypad
 
-type Keypad = IOUArray Word8 Bool
-
 type Key = SDL.Keysym
 
 -- Which CHIP-8 key (0x0 to 0xF) each keyboard key presses.
 type KeyMapping = Map.Map SDL.Keycode Word8
-
-createKeypad :: IO Keypad
-createKeypad = newArray (0, 15) False
-
-mergeKeypad :: KeyMapping -> Keypad -> [(Key, Bool)] -> IO ()
-mergeKeypad mapping keypad keypadUpdate = do
-  forM_ unmappedPresses $ \(key, _) -> do
-    name <- keyName key
-    hPutStrLn stderr $ "Ignoring unmapped key: " ++ name
-  mergeKeypad' keypad $ mapMaybe (toKeyNumber mapping) keypadUpdate
-  where
-    unmappedPresses =
-      filter (\(key, pressed) -> pressed && isNothing (Map.lookup (keysymKeycode key) mapping)) keypadUpdate
-
-mergeKeypad' :: Keypad -> [(Word8, Bool)] -> IO ()
-mergeKeypad' keypad keypadUpdate =
-  forM_ keypadUpdate $ \(index, value) -> writeArray keypad index value
 
 -- The left side of a QWERTY keyboard, in the shape of the CHIP-8 keypad:
 --   1 2 3 4        1 2 3 C
@@ -103,11 +83,3 @@ logUnmappedKeys mapping keyPresses =
     when (pressed && isNothing (Map.lookup (keysymKeycode key) mapping)) $ do
       name <- keyName key
       hPutStrLn stderr $ "Ignoring unmapped key: " ++ name
-
-isKeyPressed :: Keypad -> Word8 -> IO Bool
-isKeyPressed keypad keyword = readArray keypad keyword
-
-findPressedKey :: Keypad -> IO (Maybe Word8)
-findPressedKey keypad = do
-  pressedKeys <- filterM (isKeyPressed keypad) [0x0 .. 0xF]
-  return (listToMaybe pressedKeys)

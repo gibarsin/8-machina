@@ -1,15 +1,15 @@
-module Fonts where
+module Chip8.Fonts where
 
-import Data.Array.IO
-import Memory
+import Data.Word (Word8)
+import Chip8.Memory (Address)
 
 fontsStartPosition :: Address
 fontsStartPosition = 0x00
 
-fontSizeInWordMemory :: WordMemory
+fontSizeInWordMemory :: Word8
 fontSizeInWordMemory = 5
 
-fonts :: [WordMemory]
+fonts :: [Word8]
 fonts = [
   0xF0, 0x90, 0x90, 0x90, 0xF0,
   0x20, 0x60, 0x20, 0x20, 0x70,
@@ -27,6 +27,3 @@ fonts = [
   0xE0, 0x90, 0x90, 0x90, 0xE0,
   0xF0, 0x80, 0xF0, 0x80, 0xF0,
   0xF0, 0x80, 0xF0, 0x80, 0x80]
-
-loadFonts :: Memory -> IO ()
-loadFonts memory = setArrayAtMemory memory fontsStartPosition fonts

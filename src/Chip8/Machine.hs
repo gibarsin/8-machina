@@ -14,8 +14,8 @@ import Chip8.Memory (Address, Memory, emptyMemory, writeBytes)
 import Chip8.Register (Registers, emptyRegisters)
 import Chip8.Stack (Stack, emptyStack)
 import Chip8.VideoMemory (Screen, blankScreen)
-import Fonts (fonts, fontsStartPosition)
-import Quirks (Quirks)
+import Chip8.Fonts (fonts, fontsStartPosition)
+import Chip8.Quirks (Quirks)
 
 -- The whole state of a CHIP-8 machine at one moment.
 data Machine = Machine

@@ -18,10 +18,10 @@ import Chip8.Memory (Address, readByte, readBytes, writeBytes)
 import Chip8.Register (getRegister, setRegister)
 import Chip8.Stack (pop, push)
 import Chip8.VideoMemory (clearScreen, drawSprite)
-import Fonts (fontSizeInWordMemory, fontsStartPosition)
-import Instruction
-import Quirks
-import RegisterName
+import Chip8.Fonts (fontSizeInWordMemory, fontsStartPosition)
+import Chip8.Instruction
+import Chip8.Quirks
+import Chip8.RegisterName
 
 data EmulatorError
   = UnknownInstruction Word16 Address

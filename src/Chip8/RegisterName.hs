@@ -1,7 +1,6 @@
-module RegisterName where
+module Chip8.RegisterName where
 
-import Data.Array
-import Data.Word (Word8, Word16)
+import Data.Word (Word8)
 
 type WordRegister = Word8
 
@@ -10,8 +9,7 @@ data RegisterName =
   | V4 | V5 | V6 | V7
   | V8 | V9 | VA | VB
   | VC | VD | VE | VF
-  | DT | ST
-  deriving (Enum, Eq, Ix, Ord, Read, Show)
+  deriving (Enum, Eq, Ord, Read, Show)
 
 getRegisterNameByNumber :: Word8 -> RegisterName
 getRegisterNameByNumber 0x0 = V0
@@ -31,9 +29,3 @@ getRegisterNameByNumber 0xD = VD
 getRegisterNameByNumber 0xE = VE
 getRegisterNameByNumber 0xF = VF
 getRegisterNameByNumber _ = error "Cannot obtain register name by number."
-
-type WordPseudoRegister = Word16
-
-data PseudoRegisterName =
-    I | PC
-    deriving (Enum, Eq, Ix, Ord, Read, Show)

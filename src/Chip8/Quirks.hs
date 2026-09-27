@@ -1,4 +1,4 @@
-module Quirks where
+module Chip8.Quirks where
 
 -- Behaviours that differ between CHIP-8 interpreters.
 data Quirks = Quirks
