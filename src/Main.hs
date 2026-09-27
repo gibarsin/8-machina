@@ -27,7 +27,7 @@ main :: IO ()
 main = do
   options <- parse
   gameROM <- loadROMFile (romPath options)
-  run gameROM
+  run options gameROM
 
 loadROMFile :: FilePath -> IO ByteString
 loadROMFile path = do
@@ -42,8 +42,8 @@ loadROMFile path = do
     romSize = Data.ByteString.length
     maxROMSize = fromIntegral (memorySize - gameROMStartPosition)
 
-run :: ByteString -> IO ()
-run gameROM = do
+run :: Options -> ByteString -> IO ()
+run options gameROM = do
   machineState <- createMachineState
   loadFonts $ memory machineState
   loadGameROM (memory machineState) gameROM
@@ -55,7 +55,9 @@ run gameROM = do
   window <- SDL.createWindow
                    "CHIP-8"
                    SDL.defaultWindow
-                   { SDL.windowInitialSize = SDL.V2 (fromIntegral width * scale) (fromIntegral height * scale) }
+                   { SDL.windowInitialSize = SDL.V2 (fromIntegral initialWidth) (fromIntegral initialHeight)
+                   , SDL.windowResizable = True
+                   }
   SDL.showWindow window
   speaker <- openSpeaker
 
@@ -65,6 +67,8 @@ run gameROM = do
   closeSpeaker speaker
   SDL.destroyWindow window
   SDL.quit
+  where
+    (initialWidth, initialHeight) = windowSize options
 
 framesPerSecond :: Double
 framesPerSecond = 60
@@ -81,6 +85,7 @@ emulate machineState window speaker frameStart = do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keyPresses = Prelude.map toKeyPress keyboardEvents
     setKeys keyPresses machineState
+    when (Prelude.any isResizeEvent events) $ redraw machineState window
     replicateM_ instructionsPerFrame $ step machineState window
     decTimers machineState
     soundTimer <- getRegisterValue (registers machineState) ST
@@ -100,14 +105,15 @@ step machineState window = do
     (JP _) -> return ()
     (CALL _) -> return ()
     (JPV0 _) -> return ()
-    CLS -> redraw >> incPC machineState
-    (DRW _ _ _) -> redraw >> incPC machineState
+    CLS -> redraw machineState window >> incPC machineState
+    (DRW _ _ _) -> redraw machineState window >> incPC machineState
     _ -> do
       incPC machineState
-  where
-    redraw = do
-      draw (videoMemory machineState) window
-      SDL.updateWindowSurface window
+
+redraw :: MachineState -> SDL.Window -> IO ()
+redraw machineState window = do
+  draw (videoMemory machineState) window
+  SDL.updateWindowSurface window
 
 -- Sleeps until the current frame ends and returns when the next one starts.
 -- If emulation fell behind, the next frame starts now instead of trying to
@@ -121,6 +127,10 @@ waitForNextFrame frameStart = do
 
 isQuitEvent event = case SDL.eventPayload event of
   SDL.QuitEvent -> True
+  _ -> False
+
+isResizeEvent event = case SDL.eventPayload event of
+  SDL.WindowSizeChangedEvent _ -> True
   _ -> False
 
 isKeyboardEvent event = case SDL.eventPayload event of
