@@ -4,8 +4,10 @@ import Control.Monad
 import Data.Array.IO
 import Data.Maybe (isNothing, listToMaybe, mapMaybe)
 import Data.Word
+import Foreign.C.String (peekCString)
 import qualified SDL
 import SDL.Input.Keyboard
+import qualified SDL.Raw
 import System.IO (hPutStrLn, stderr)
 
 type Keypad = IOUArray Word8 Bool
@@ -17,8 +19,9 @@ createKeypad = newArray (0, 15) False
 
 mergeKeypad :: Keypad -> [(Key, Bool)] -> IO ()
 mergeKeypad keypad keypadUpdate = do
-  forM_ unmappedPresses $ \(keycode, _) ->
-    hPutStrLn stderr $ "Ignoring unmapped key: " ++ show keycode
+  forM_ unmappedPresses $ \(keycode, _) -> do
+    name <- keyName keycode
+    hPutStrLn stderr $ "Ignoring unmapped key: " ++ name
   mergeKeypad' keypad $ mapMaybe toKeyNumber keypadUpdate
   where
     unmappedPresses =
@@ -47,6 +50,10 @@ keyMapping SDL.KeycodeR = Just 0xd
 keyMapping SDL.KeycodeF = Just 0xe
 keyMapping SDL.KeycodeV = Just 0xf
 keyMapping _            = Nothing
+
+-- SDL's human-readable name for a key, e.g. "Return" or "Space".
+keyName :: Key -> IO String
+keyName keycode = SDL.Raw.getKeyName (unwrapKeycode keycode) >>= peekCString
 
 toKeyNumber :: (Key, Bool) -> Maybe (Word8, Bool)
 toKeyNumber (keycode, pressed) = fmap (\keyNumber -> (keyNumber, pressed)) (keyMapping keycode)
