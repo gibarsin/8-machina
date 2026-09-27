@@ -79,8 +79,8 @@ emulate machineState window speaker frameStart = do
   events <- SDL.pollEvents
   unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
-    let keycodes = Prelude.map toKeycode keyboardEvents
-    setKeys keycodes machineState
+    let keyPresses = Prelude.map toKeyPress keyboardEvents
+    setKeys keyPresses machineState
     replicateM_ instructionsPerFrame $ step machineState window
     decTimers machineState
     soundTimer <- getRegisterValue (registers machineState) ST
@@ -127,10 +127,10 @@ isKeyboardEvent event = case SDL.eventPayload event of
   SDL.KeyboardEvent _ -> True
   _ -> False
 
-toKeycode e =
-  toKeycode' (SDL.keyboardEventKeyMotion (getKeyboardEventData (SDL.eventPayload e))) (SDL.keysymKeycode (SDL.keyboardEventKeysym (getKeyboardEventData (SDL.eventPayload e))))
+toKeyPress e =
+  toKeyPress' (SDL.keyboardEventKeyMotion (getKeyboardEventData (SDL.eventPayload e))) (SDL.keyboardEventKeysym (getKeyboardEventData (SDL.eventPayload e)))
 
 getKeyboardEventData (SDL.KeyboardEvent keyboardEventData) = keyboardEventData
 
-toKeycode' SDL.Pressed keycode  = (keycode, True)
-toKeycode' SDL.Released keycode  = (keycode, False)
+toKeyPress' SDL.Pressed key  = (key, True)
+toKeyPress' SDL.Released key  = (key, False)

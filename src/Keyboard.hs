@@ -4,28 +4,26 @@ import Control.Monad
 import Data.Array.IO
 import Data.Maybe (isNothing, listToMaybe, mapMaybe)
 import Data.Word
-import Foreign.C.String (peekCString)
 import qualified SDL
 import SDL.Input.Keyboard
-import qualified SDL.Raw
 import System.IO (hPutStrLn, stderr)
 
 type Keypad = IOUArray Word8 Bool
 
-type Key = SDL.Keycode
+type Key = SDL.Keysym
 
 createKeypad :: IO Keypad
 createKeypad = newArray (0, 15) False
 
 mergeKeypad :: Keypad -> [(Key, Bool)] -> IO ()
 mergeKeypad keypad keypadUpdate = do
-  forM_ unmappedPresses $ \(keycode, _) -> do
-    name <- keyName keycode
+  forM_ unmappedPresses $ \(key, _) -> do
+    name <- keyName key
     hPutStrLn stderr $ "Ignoring unmapped key: " ++ name
   mergeKeypad' keypad $ mapMaybe toKeyNumber keypadUpdate
   where
     unmappedPresses =
-      filter (\(keycode, pressed) -> pressed && isNothing (keyMapping keycode)) keypadUpdate
+      filter (\(key, pressed) -> pressed && isNothing (keyMapping (keysymKeycode key))) keypadUpdate
 
 mergeKeypad' :: Keypad -> [(Word8, Bool)] -> IO ()
 mergeKeypad' keypad keypadUpdate =
@@ -51,12 +49,12 @@ keyMapping SDL.KeycodeF = Just 0xe
 keyMapping SDL.KeycodeV = Just 0xf
 keyMapping _            = Nothing
 
--- SDL's human-readable name for a key, e.g. "Return" or "Space".
+-- SDL's human-readable name for the physical key, e.g. "Return" or "Space".
 keyName :: Key -> IO String
-keyName keycode = SDL.Raw.getKeyName (unwrapKeycode keycode) >>= peekCString
+keyName key = getScancodeName (keysymScancode key)
 
 toKeyNumber :: (Key, Bool) -> Maybe (Word8, Bool)
-toKeyNumber (keycode, pressed) = fmap (\keyNumber -> (keyNumber, pressed)) (keyMapping keycode)
+toKeyNumber (key, pressed) = fmap (\keyNumber -> (keyNumber, pressed)) (keyMapping (keysymKeycode key))
 
 isKeyPressed :: Keypad -> Word8 -> IO Bool
 isKeyPressed keypad keyword = readArray keypad keyword
