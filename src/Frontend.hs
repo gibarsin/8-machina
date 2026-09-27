@@ -23,20 +23,22 @@ data PhysicalKey
   | OtherKey String              -- any other key, named by the front-end
   deriving (Eq, Ord)
 
--- The name shown to the user, e.g. in the unmapped-key log.
+-- The name shown to the user, e.g. in the unmapped-key log. These match
+-- SDL's own getScancodeName strings exactly, so the log reads the same
+-- as it did before front-ends were abstracted out.
 keyLabel :: PhysicalKey -> String
 keyLabel (CharKey c) = [c]
-keyLabel (KeypadKey n) = "Keypad" ++ show n
+keyLabel (KeypadKey n) = "Keypad " ++ show n
 keyLabel ArrowUp = "Up"
 keyLabel ArrowDown = "Down"
 keyLabel ArrowLeft = "Left"
 keyLabel ArrowRight = "Right"
 keyLabel SpaceKey = "Space"
-keyLabel EnterKey = "Enter"
+keyLabel EnterKey = "Return"
 keyLabel TabKey = "Tab"
 keyLabel BackspaceKey = "Backspace"
-keyLabel LeftShiftKey = "LeftShift"
-keyLabel RightShiftKey = "RightShift"
-keyLabel LeftCtrlKey = "LeftCtrl"
-keyLabel RightCtrlKey = "RightCtrl"
+keyLabel LeftShiftKey = "Left Shift"
+keyLabel RightShiftKey = "Right Shift"
+keyLabel LeftCtrlKey = "Left Ctrl"
+keyLabel RightCtrlKey = "Right Ctrl"
 keyLabel (OtherKey name) = name
