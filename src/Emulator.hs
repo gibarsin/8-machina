@@ -21,27 +21,26 @@ framesPerSecond = 60
 run :: Frontend -> Int -> KeyMapping -> Machine -> IO ()
 run frontend speed keyMapping machine = do
   frameStart <- getMonotonicTime
-  loop frontend speed keyMapping machine frameStart 0
-
-loop :: Frontend -> Int -> KeyMapping -> Machine -> Double -> Double -> IO ()
-loop frontend speed keyMapping machine frameStart carriedInstructions = do
-  inputs <- pollInput frontend
-  if QuitRequested `elem` inputs
-    then close frontend
-    else do
-      mapM_ (\name -> hPutStrLn stderr ("Ignoring unmapped key: " ++ name))
-            (unmappedKeyNames keyMapping inputs)
-      let pressedKeys = updateKeypad keyMapping inputs (keypad machine)
-          instructionBudget = carriedInstructions + fromIntegral speed / framesPerSecond
-          instructionsThisFrame = floor instructionBudget
-      case runTick instructionsThisFrame pressedKeys machine of
-        Left emulatorError -> close frontend >> die (errorMessage emulatorError)
-        Right (nextMachine, tick) -> do
-          when (screenChanged tick) $ present frontend (screen nextMachine)
-          setBeep frontend (beeping tick)
-          nextFrameStart <- waitUntil (frameStart + 1 / framesPerSecond)
-          loop frontend speed keyMapping nextMachine nextFrameStart
-               (instructionBudget - fromIntegral instructionsThisFrame)
+  loop machine frameStart 0
+  where
+    loop machine frameStart carriedInstructions = do
+      inputs <- pollInput frontend
+      if QuitRequested `elem` inputs
+        then close frontend
+        else do
+          mapM_ (\name -> hPutStrLn stderr ("Ignoring unmapped key: " ++ name))
+                (unmappedKeyNames keyMapping inputs)
+          let pressedKeys = updateKeypad keyMapping inputs (keypad machine)
+              instructionBudget = carriedInstructions + fromIntegral speed / framesPerSecond
+              instructionsThisFrame = floor instructionBudget
+          case runTick instructionsThisFrame pressedKeys machine of
+            Left emulatorError -> close frontend >> die (errorMessage emulatorError)
+            Right (nextMachine, tick) -> do
+              when (screenChanged tick) $ present frontend (screen nextMachine)
+              setBeep frontend (beeping tick)
+              nextFrameStart <- waitUntil (frameStart + 1 / framesPerSecond)
+              loop nextMachine nextFrameStart
+                   (instructionBudget - fromIntegral instructionsThisFrame)
 
 -- Sleeps until the given time and reports when the next frame actually
 -- starts. If emulation fell behind, the next frame starts now instead of
