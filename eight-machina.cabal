@@ -12,7 +12,9 @@ executable 8-machina
   main-is:          Main.hs
   hs-source-dirs:   src
   other-modules:    CPU
+                  , Chip8.CPU
                   , Chip8.Keypad
+                  , Chip8.Machine
                   , Chip8.Memory
                   , Chip8.Register
                   , Chip8.Stack
