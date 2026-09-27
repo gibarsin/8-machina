@@ -6,7 +6,7 @@ import GHC.Clock (getMonotonicTime)
 import System.Exit (die)
 import System.IO (hPutStrLn, stderr)
 
-import Chip8.CPU (Frame (..), errorMessage, runFrame)
+import Chip8.CPU (TimerTick (..), errorMessage, runTick)
 import Chip8.Machine (Machine (..))
 import Frontend (Frontend (..), Input (..))
 import Keyboard (KeyMapping, unmappedKeyNames, updateKeypad)
@@ -34,11 +34,11 @@ loop frontend speed keyMapping machine frameStart carriedInstructions = do
       let pressedKeys = updateKeypad keyMapping inputs (keypad machine)
           instructionBudget = carriedInstructions + fromIntegral speed / framesPerSecond
           instructionsThisFrame = floor instructionBudget
-      case runFrame instructionsThisFrame pressedKeys machine of
+      case runTick instructionsThisFrame pressedKeys machine of
         Left emulatorError -> close frontend >> die (errorMessage emulatorError)
-        Right (nextMachine, frame) -> do
-          when (screenChanged frame) $ present frontend (screen nextMachine)
-          setBeep frontend (beeping frame)
+        Right (nextMachine, tick) -> do
+          when (screenChanged tick) $ present frontend (screen nextMachine)
+          setBeep frontend (beeping tick)
           nextFrameStart <- waitUntil (frameStart + 1 / framesPerSecond)
           loop frontend speed keyMapping nextMachine nextFrameStart
                (instructionBudget - fromIntegral instructionsThisFrame)

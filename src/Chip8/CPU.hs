@@ -1,10 +1,10 @@
 module Chip8.CPU
   ( EmulatorError (..)
   , errorMessage
-  , Frame (..)
+  , TimerTick (..)
   , execute
   , step
-  , runFrame
+  , runTick
   ) where
 
 import Data.Bits ((.&.), (.|.), shiftL, shiftR, xor)
@@ -36,19 +36,19 @@ errorMessage (StackOverflow address) =
 errorMessage (StackUnderflow address) =
   printf "Return with an empty stack at address 0x%03X" address
 
--- What the front-end needs to do after a frame.
-data Frame = Frame
+-- What the front-end needs to do after the timers tick.
+data TimerTick = TimerTick
   { screenChanged :: Bool
   , beeping :: Bool
   }
 
 -- Runs the given number of instructions with the keypad as given, then
 -- ticks the timers once, as the CHIP-8 does 60 times a second.
-runFrame :: Int -> Keypad -> Machine -> Either EmulatorError (Machine, Frame)
-runFrame instructions pressedKeys machine = do
+runTick :: Int -> Keypad -> Machine -> Either EmulatorError (Machine, TimerTick)
+runTick instructions pressedKeys machine = do
   (ranMachine, changed) <- runSteps instructions (machine { keypad = pressedKeys }, False)
   let ticked = tickTimers ranMachine
-  return (ticked, Frame { screenChanged = changed, beeping = soundTimer ticked > 0 })
+  return (ticked, TimerTick { screenChanged = changed, beeping = soundTimer ticked > 0 })
   where
     runSteps 0 result = Right result
     runSteps remaining (current, changed) = do
