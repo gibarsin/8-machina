@@ -76,7 +76,7 @@ cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Ri
 
 Changelog
 ---------
-### Unreleased
+### 1.2 (September 2026)
   - Add `--size`, `--foreground`, `--background`, `--speed`, `--key`, `--tone`, `--volume` and `--quirks` options
   - Make the window resizable
   - Clip sprites at the screen edge and reset `VF` after `AND`, `OR` and `XOR`, as the COSMAC VIP did
