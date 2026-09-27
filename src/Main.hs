@@ -25,8 +25,8 @@ import Text.Printf (printf)
 
 main :: IO ()
 main = do
-  gamePath <- parse
-  gameROM <- loadROMFile gamePath
+  options <- parse
+  gameROM <- loadROMFile (romPath options)
   run gameROM
 
 loadROMFile :: FilePath -> IO ByteString

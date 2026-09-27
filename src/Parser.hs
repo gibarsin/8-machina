@@ -2,12 +2,19 @@ module Parser where
 import Data.Semigroup ((<>))
 import Options.Applicative
 
-parse :: IO FilePath
+data Options = Options
+  { romPath :: FilePath
+  }
+
+parse :: IO Options
 parse = execParser parserInfo
 
-parserInfo :: ParserInfo FilePath
+parserInfo :: ParserInfo Options
 parserInfo = do
-  info (helper <*> filePathParser) $ fullDesc <> progDesc "A CHIP-8 Emulator thinked in Functional Programming." <> header "CHIP-8 Emulator"
+  info (helper <*> optionsParser) $ fullDesc <> progDesc "A CHIP-8 Emulator thinked in Functional Programming." <> header "CHIP-8 Emulator"
+
+optionsParser :: Parser Options
+optionsParser = Options <$> filePathParser
 
 filePathParser :: Parser FilePath
 filePathParser =
