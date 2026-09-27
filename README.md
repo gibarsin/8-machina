@@ -72,10 +72,16 @@ cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Ri
   - `--key NAME=HEX`: make a keyboard key press a CHIP-8 key, on top of the default layout. Can be repeated. `NAME` is a letter, a digit, `Keypad0` to `Keypad9`, `Up`, `Down`, `Left`, `Right`, `Space`, `Enter`, `Tab`, `Backspace`, `LeftShift`, `RightShift`, `LeftCtrl` or `RightCtrl`.
   - `--tone HZ`: pitch of the beep (default `440`)
   - `--volume 0-100`: loudness of the beep, `0` turns sound off (default `10`)
-  - `--quirks cosmac|superchip`: interpreter to imitate (default `cosmac`). BLINKY needs `superchip`.
+  - `--interpreter cosmac|superchip`: original CHIP-8 interpreter to behave like (default `cosmac`). BLINKY needs `superchip`.
 
 Changelog
 ---------
+### Unreleased
+  - Rewrite the emulator core as pure functions, independent of the IO Monad. SDL is only used by the front-end.
+  - Rename `--quirks` to `--interpreter`. This breaks the command line, but the project has no known users, so it ships as a minor version.
+  - Draw the screen once per frame instead of after every drawing instruction
+  - Wrap memory addresses at 4096 and treat keys above 0xF as not pressed, instead of crashing
+
 ### 1.2 (September 2026)
   - Add `--size`, `--foreground`, `--background`, `--speed`, `--key`, `--tone`, `--volume` and `--quirks` options
   - Make the window resizable
@@ -100,10 +106,9 @@ Changelog
 
 Features To Develop
 -------------------
-  - Use [brick](https://github.com/jtdaugherty/brick) as UI library, after the back end is independent of the IO Monad
+  - Use [brick](https://github.com/jtdaugherty/brick) as a second, terminal-based front-end
 
 To Refactor
 -----------
   - Make the main completely independent of the keypad and graphics module
   - Make more abstractions in the `CPU.hs` execution of instructions
-  - Make the back end independent of the IO Monad
