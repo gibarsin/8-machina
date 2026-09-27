@@ -2,7 +2,6 @@ module Graphics where
 
 import Control.Monad
 
-import Foreign.C.Types
 import  SDL
 import VideoMemory
 import Data.Array.MArray
