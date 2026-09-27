@@ -65,33 +65,35 @@ execute machineState (AND vx vy) = operateRegisters machineState vx vx (.&.) vy
 
 execute machineState (XOR vx vy) = operateRegisters machineState vx vx xor vy
 
+-- The arithmetic instructions write VF after the result, so the flag wins
+-- when VF is also the destination register.
 execute machineState (ADD vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
+  setValueAtRegister (registers machineState) vx (registerX + registerY)
   setCarry machineState $ if registerX > 255 - registerY then 1 else 0
-  operateRegisters  machineState vx vx (+) vy
 
 execute machineState (SUB vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
+  setValueAtRegister (registers machineState) vx (registerX - registerY)
   setCarry machineState $ if registerX > registerY then 1 else 0
-  operateRegisters  machineState vx vy subtract vx
 
 execute machineState (SHR vx vy) = do
   registerY <- getRegisterValue (registers machineState) vy
-  setCarry machineState $ registerY .&. 0x1
   setValueAtRegister (registers machineState) vx (registerY `shiftR` 1)
+  setCarry machineState $ registerY .&. 0x1
 
 execute machineState (SUBN vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
   registerY <- getRegisterValue (registers machineState) vy
+  setValueAtRegister (registers machineState) vx (registerY - registerX)
   setCarry machineState $ if registerY > registerX then 1 else 0
-  operateRegisters  machineState vx vx subtract vy
 
 execute machineState (SHL vx vy) = do
   registerY <- getRegisterValue (registers machineState) vy
-  setCarry machineState $ if (registerY .&. 0x80) == 0x80 then 1 else 0
   setValueAtRegister (registers machineState) vx (registerY `shiftL` 1)
+  setCarry machineState $ if (registerY .&. 0x80) == 0x80 then 1 else 0
 
 execute machineState (SNERR vx vy) = do
   registerX <- getRegisterValue (registers machineState) vx
