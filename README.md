@@ -56,7 +56,7 @@ A S D F         7 8 9 E
 Z X C V         A 0 B F
 ```
 
-Other keys are ignored, unless mapped with `--key`. Close the window to quit.
+Other keys are ignored, unless mapped with `--key`. Close the window to quit, or press Esc in the terminal front-end.
 
 Options
 -------
@@ -73,9 +73,13 @@ cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Ri
   - `--tone HZ`: pitch of the beep (default `440`)
   - `--volume 0-100`: loudness of the beep, `0` turns sound off (default `10`)
   - `--interpreter cosmac|superchip`: original CHIP-8 interpreter to behave like (default `cosmac`). BLINKY needs `superchip`.
+  - `--frontend sdl|terminal` (default `sdl`): `terminal` draws in the current terminal instead of opening a window, using half-block characters, and rings the terminal bell instead of a tone. Press Esc to quit. `--size` and `--tone` do not apply, and held keys are detected by their repeat rate rather than a true release event, so a key can take up to about 100ms to register as released. There is no numeric keypad detection or standalone Shift/Ctrl key in a terminal, so `Keypad0`-`Keypad9`, `LeftShift`, `RightShift`, `LeftCtrl` and `RightCtrl` cannot be bound with `--key` under this front-end.
 
 Changelog
 ---------
+### Unreleased
+  - Add a terminal front-end (`--frontend terminal`), using [brick](https://github.com/jtdaugherty/brick)
+
 ### 1.4 (September 2026)
   - Separate the emulation loop from SDL behind a Frontend interface (Emulator.hs), so a second front-end can be added without duplicating the loop
 
@@ -107,6 +111,3 @@ Changelog
 ### 1.0 (April 2018)
   - First version, developed during the functional programming course at ITBA (Instituto Tecnológico de Buenos Aires)
 
-Features To Develop
--------------------
-  - Use [brick](https://github.com/jtdaugherty/brick) as a second, terminal-based front-end
