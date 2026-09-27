@@ -22,6 +22,9 @@ fetch machineState = do
 
 execute ::  MachineState -> Instruction -> IO ()
 
+-- Calls machine code on the original hardware; emulators ignore it
+execute _ (SYS _) = return ()
+
 execute machineState (CLS) = clearVideoMemory (videoMemory machineState)
 
 execute machineState (RET) = do
@@ -180,8 +183,6 @@ execute machineState (LDRI vx) = do
       incI machineState
       return $ a + 1
       ) 0 [V0 .. vx]
-
-execute _ _ = error "Instruction decoded correctly but not implemented in CPU."
 
 operateRegisters machineState registerToSave registerNameA op registerNameB = do
   registerA <- getRegisterValue (registers machineState) registerNameA
