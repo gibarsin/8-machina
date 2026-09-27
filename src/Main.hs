@@ -40,8 +40,15 @@ run gameROM = do
                    { SDL.windowInitialSize = SDL.V2 (fromIntegral width * scale) (fromIntegral height * scale) }
   SDL.showWindow window
 
-  forever $ do
-    events <- SDL.pollEvents
+  emulate machineState window
+
+  SDL.destroyWindow window
+  SDL.quit
+
+emulate :: MachineState -> SDL.Window -> IO ()
+emulate machineState window = do
+  events <- SDL.pollEvents
+  unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keycodes = Prelude.map toKeycode keyboardEvents
     setKeys keycodes machineState
@@ -59,6 +66,11 @@ run gameROM = do
         incPC machineState
       _ -> do
         incPC machineState
+    emulate machineState window
+
+isQuitEvent event = case SDL.eventPayload event of
+  SDL.QuitEvent -> True
+  _ -> False
 
 isKeyboardEvent event = case SDL.eventPayload event of
   SDL.KeyboardEvent _ -> True
