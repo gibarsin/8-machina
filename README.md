@@ -110,7 +110,3 @@ Changelog
 Features To Develop
 -------------------
   - Use [brick](https://github.com/jtdaugherty/brick) as a second, terminal-based front-end
-
-To Refactor
------------
-  - Make more abstractions in the `CPU.hs` execution of instructions
