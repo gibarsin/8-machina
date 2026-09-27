@@ -20,8 +20,10 @@ height = 32
 createVideoMemory :: IO VideoMemory
 createVideoMemory = newArray (0, (width * height) - 1) False
 
--- clearVideoMemory :: VideoMemory -> IO ()
--- clearVideoMemory videoMemory = fill videoMemory False
+clearVideoMemory :: VideoMemory -> IO ()
+clearVideoMemory videoMemory = do
+  (firstIndex, lastIndex) <- getBounds videoMemory
+  forM_ [firstIndex .. lastIndex] $ \index -> writeArray videoMemory index False
 
 drawSprite :: Memory -> VideoMemory -> (WordVideoAddress, WordVideoAddress) -> Integer -> Integer -> IO Bool
 drawSprite memory videoMemory (x, y) bytesToRead address = do

@@ -74,12 +74,14 @@ step machineState window = do
     (JP _) -> return ()
     (CALL _) -> return ()
     (JPV0 _) -> return ()
-    (DRW _ _ _) -> do
-      draw (videoMemory machineState) window
-      SDL.updateWindowSurface window
-      incPC machineState
+    CLS -> redraw >> incPC machineState
+    (DRW _ _ _) -> redraw >> incPC machineState
     _ -> do
       incPC machineState
+  where
+    redraw = do
+      draw (videoMemory machineState) window
+      SDL.updateWindowSurface window
 
 -- Sleeps until the current frame ends and returns when the next one starts.
 -- If emulation fell behind, the next frame starts now instead of trying to

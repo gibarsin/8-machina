@@ -22,9 +22,7 @@ fetch machineState = do
 
 execute ::  MachineState -> Instruction -> IO ()
 
-execute machineState (CLS) = do
-  print "CLS"
-  return () -- TODO
+execute machineState (CLS) = clearVideoMemory (videoMemory machineState)
 
 execute machineState (RET) = do
   addressPopped <- pop (stack machineState)
