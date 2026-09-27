@@ -59,7 +59,7 @@ run options gameROM = do
                    , SDL.windowResizable = True
                    }
   SDL.showWindow window
-  speaker <- openSpeaker
+  speaker <- openSpeaker (tone options) (volume options)
 
   frameStart <- SDL.time
   emulate options machineState window speaker frameStart 0

@@ -13,6 +13,8 @@ data Options = Options
   , colors :: Colors
   , speed :: Int
   , keyMapping :: KeyMapping
+  , tone :: Int
+  , volume :: Int
   }
 
 parse :: IO Options
@@ -25,6 +27,25 @@ parserInfo = do
 optionsParser :: Parser Options
 optionsParser =
   Options <$> filePathParser <*> sizeParser <*> colorsParser <*> speedParser <*> keyMappingParser
+    <*> toneParser <*> volumeParser
+
+toneParser :: Parser Int
+toneParser =
+  option (eitherReader (readIntBetween "tone" 20 20000)) $
+    long "tone" <> metavar "HZ" <> value 440 <> showDefault
+      <> help "Pitch of the beep, from 20 to 20000 Hz."
+
+volumeParser :: Parser Int
+volumeParser =
+  option (eitherReader (readIntBetween "volume" 0 100)) $
+    long "volume" <> metavar "0-100" <> value 10 <> showDefault
+      <> help "Loudness of the beep. 0 turns sound off."
+
+readIntBetween :: String -> Int -> Int -> String -> Either String Int
+readIntBetween name lowest highest text = case reads text of
+  [(number, "")] | number >= lowest && number <= highest -> Right number
+  _ -> Left $ "Invalid " ++ name ++ " " ++ show text ++ ", expected a whole number from "
+         ++ show lowest ++ " to " ++ show highest
 
 keyMappingParser :: Parser KeyMapping
 keyMappingParser =
