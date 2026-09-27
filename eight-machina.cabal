@@ -12,6 +12,7 @@ executable 8-machina
   main-is:          Main.hs
   hs-source-dirs:   src
   other-modules:    Frontend
+                  , Frontend.SDL
                   , Chip8.CPU
                   , Chip8.Fonts
                   , Chip8.Instruction
