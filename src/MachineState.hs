@@ -56,6 +56,11 @@ incPC machineState = do
     currPC <- getPC machineState
     setValueAtPseudoRegister (pseudoRegisters machineState) PC (currPC + twoByteWords)
 
+decPC :: MachineState -> IO ()
+decPC machineState = do
+    currPC <- getPC machineState
+    setValueAtPseudoRegister (pseudoRegisters machineState) PC (currPC - twoByteWords)
+
 setCarry :: MachineState -> WordMemory -> IO ()
 setCarry machineState value = setValueAtRegister (registers machineState) VF value
 

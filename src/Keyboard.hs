@@ -2,7 +2,7 @@ module Keyboard where
 
 import Control.Monad
 import Data.Array.IO
-import Data.Maybe (isNothing, mapMaybe)
+import Data.Maybe (isNothing, listToMaybe, mapMaybe)
 import Data.Word
 import qualified SDL
 import SDL.Input.Keyboard
@@ -53,3 +53,8 @@ toKeyNumber (keycode, pressed) = fmap (\keyNumber -> (keyNumber, pressed)) (keyM
 
 isKeyPressed :: Keypad -> Word8 -> IO Bool
 isKeyPressed keypad keyword = readArray keypad keyword
+
+findPressedKey :: Keypad -> IO (Maybe Word8)
+findPressedKey keypad = do
+  pressedKeys <- filterM (isKeyPressed keypad) [0x0 .. 0xF]
+  return (listToMaybe pressedKeys)

@@ -130,8 +130,11 @@ execute machineState (LDRDT vx) = do
     setValueAtRegister (registers machineState) vx dt
 
 execute machineState (LDK vx) = do
-    dummyLine <- getLine -- TODO hack to halt until there is user input
-    return ()
+    pressedKey <- findPressedKey (keypad machineState)
+    case pressedKey of
+      Just key -> setValueAtRegister (registers machineState) vx key
+      -- Step back so this instruction runs again until a key is pressed
+      Nothing -> decPC machineState
 
 -- TODO make abstraction of LDDT and LDST
 execute machineState (LDDT vx) = do
