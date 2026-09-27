@@ -1,7 +1,7 @@
-module Chip8.Quirks where
+module Chip8.Interpreter where
 
--- Behaviours that differ between CHIP-8 interpreters.
-data Quirks = Quirks
+-- Behaviours that differ between the original CHIP-8 interpreters.
+data Interpreter = Interpreter
   { shiftUsesVy :: Bool           -- 8xy6 and 8xyE shift Vy into Vx, instead of shifting Vx in place
   , loadStoreIncrementsI :: Bool  -- Fx55 and Fx65 leave I after the last register used
   , jumpUsesV0 :: Bool            -- Bnnn adds V0, instead of Vx where x is the top digit of nnn
@@ -10,8 +10,8 @@ data Quirks = Quirks
   }
 
 -- The original COSMAC VIP interpreter (1977).
-cosmac :: Quirks
-cosmac = Quirks
+cosmac :: Interpreter
+cosmac = Interpreter
   { shiftUsesVy = True
   , loadStoreIncrementsI = True
   , jumpUsesV0 = True
@@ -20,8 +20,8 @@ cosmac = Quirks
   }
 
 -- SUPER-CHIP 1.1 on the HP 48 calculators.
-superchip :: Quirks
-superchip = Quirks
+superchip :: Interpreter
+superchip = Interpreter
   { shiftUsesVy = False
   , loadStoreIncrementsI = False
   , jumpUsesV0 = False
@@ -29,5 +29,5 @@ superchip = Quirks
   , logicResetsVF = False
   }
 
-quirksProfiles :: [(String, Quirks)]
-quirksProfiles = [("cosmac", cosmac), ("superchip", superchip)]
+interpreterProfiles :: [(String, Interpreter)]
+interpreterProfiles = [("cosmac", cosmac), ("superchip", superchip)]

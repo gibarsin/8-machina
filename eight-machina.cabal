@@ -14,10 +14,10 @@ executable 8-machina
   other-modules:    Chip8.CPU
                   , Chip8.Fonts
                   , Chip8.Instruction
+                  , Chip8.Interpreter
                   , Chip8.Keypad
                   , Chip8.Machine
                   , Chip8.Memory
-                  , Chip8.Quirks
                   , Chip8.Register
                   , Chip8.RegisterName
                   , Chip8.Stack

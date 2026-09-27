@@ -6,7 +6,7 @@ import Keyboard (KeyMapping, keyMappingWith, readKeyBinding)
 import Data.Char (toLower)
 import Numeric (readHex)
 import Options.Applicative
-import Chip8.Quirks (Quirks, cosmac, quirksProfiles)
+import Chip8.Interpreter (Interpreter, cosmac, interpreterProfiles)
 import Text.Printf (printf)
 
 data Options = Options
@@ -17,7 +17,7 @@ data Options = Options
   , keyMapping :: KeyMapping
   , tone :: Int
   , volume :: Int
-  , quirksProfile :: Quirks
+  , interpreterProfile :: Interpreter
   }
 
 parse :: IO Options
@@ -30,18 +30,18 @@ parserInfo = do
 optionsParser :: Parser Options
 optionsParser =
   Options <$> filePathParser <*> sizeParser <*> colorsParser <*> speedParser <*> keyMappingParser
-    <*> toneParser <*> volumeParser <*> quirksParser
+    <*> toneParser <*> volumeParser <*> interpreterParser
 
-quirksParser :: Parser Quirks
-quirksParser =
-  option (eitherReader readQuirks) $
-    long "quirks" <> metavar "PROFILE" <> value cosmac <> showDefaultWith (const "cosmac")
-      <> help "Interpreter to imitate: cosmac (original COSMAC VIP) or superchip (SUPER-CHIP 1.1)."
+interpreterParser :: Parser Interpreter
+interpreterParser =
+  option (eitherReader readInterpreter) $
+    long "interpreter" <> metavar "NAME" <> value cosmac <> showDefaultWith (const "cosmac")
+      <> help "Original CHIP-8 interpreter to behave like: cosmac (COSMAC VIP) or superchip (SUPER-CHIP 1.1)."
 
-readQuirks :: String -> Either String Quirks
-readQuirks text = case lookup (map toLower text) quirksProfiles of
+readInterpreter :: String -> Either String Interpreter
+readInterpreter text = case lookup (map toLower text) interpreterProfiles of
   Just profile -> Right profile
-  Nothing -> Left $ "Invalid quirks profile " ++ show text ++ ", expected cosmac or superchip"
+  Nothing -> Left $ "Invalid interpreter " ++ show text ++ ", expected cosmac or superchip"
 
 toneParser :: Parser Int
 toneParser =

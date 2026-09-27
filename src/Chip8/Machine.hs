@@ -15,7 +15,7 @@ import Chip8.Register (Registers, emptyRegisters)
 import Chip8.Stack (Stack, emptyStack)
 import Chip8.VideoMemory (Screen, blankScreen)
 import Chip8.Fonts (fonts, fontsStartPosition)
-import Chip8.Quirks (Quirks)
+import Chip8.Interpreter (Interpreter)
 
 -- The whole state of a CHIP-8 machine at one moment.
 data Machine = Machine
@@ -28,7 +28,7 @@ data Machine = Machine
   , soundTimer :: Word8
   , screen :: Screen
   , keypad :: Keypad
-  , quirks :: Quirks
+  , interpreter :: Interpreter
   , generator :: StdGen       -- source of the random numbers for RND
   }
 
@@ -36,8 +36,8 @@ data Machine = Machine
 programStart :: Address
 programStart = 0x200
 
-newMachine :: Quirks -> StdGen -> ByteString -> Machine
-newMachine machineQuirks seed rom = Machine
+newMachine :: Interpreter -> StdGen -> ByteString -> Machine
+newMachine machineInterpreter seed rom = Machine
   { memory = writeBytes programStart (ByteString.unpack rom) (writeBytes fontsStartPosition fonts emptyMemory)
   , registers = emptyRegisters
   , index = 0
@@ -47,6 +47,6 @@ newMachine machineQuirks seed rom = Machine
   , soundTimer = 0
   , screen = blankScreen
   , keypad = noKeysPressed
-  , quirks = machineQuirks
+  , interpreter = machineInterpreter
   , generator = seed
   }

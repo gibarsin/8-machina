@@ -26,7 +26,7 @@ main = do
   options <- parse
   gameROM <- loadROMFile (romPath options)
   seed <- initStdGen
-  run options (newMachine (quirksProfile options) seed gameROM)
+  run options (newMachine (interpreterProfile options) seed gameROM)
 
 loadROMFile :: FilePath -> IO ByteString
 loadROMFile path = do

@@ -20,7 +20,7 @@ import Chip8.Stack (pop, push)
 import Chip8.VideoMemory (clearScreen, drawSprite)
 import Chip8.Fonts (fontSizeInWordMemory, fontsStartPosition)
 import Chip8.Instruction
-import Chip8.Quirks
+import Chip8.Interpreter
 import Chip8.RegisterName
 
 data EmulatorError
@@ -118,7 +118,7 @@ execute instruction machine = case instruction of
   LDI address -> Right machine { index = address }
   JPV0 address ->
     let offsetRegister
-          | jumpUsesV0 (quirks machine) = V0
+          | jumpUsesV0 (interpreter machine) = V0
           | otherwise = getRegisterNameByNumber (fromIntegral (address `shiftR` 8))
     in Right machine { pc = address + fromIntegral (register offsetRegister) }
   RND vx mask ->
@@ -127,7 +127,7 @@ execute instruction machine = case instruction of
   DRW vx vy height ->
     let rows = readBytes (index machine) (fromIntegral height) (memory machine)
         position = (fromIntegral (register vx), fromIntegral (register vy))
-        (drawn, collision) = drawSprite (clipSprites (quirks machine)) rows position (screen machine)
+        (drawn, collision) = drawSprite (clipSprites (interpreter machine)) rows position (screen machine)
     in Right (setFlag collision machine { screen = drawn })
   SKP vx -> Right (skipIf (isKeyPressed (register vx) (keypad machine)))
   SKNP vx -> Right (skipIf (not (isKeyPressed (register vx) (keypad machine))))
@@ -155,12 +155,12 @@ execute instruction machine = case instruction of
     skipIf condition = if condition then machine { pc = pc machine + 2 } else machine
     logic operation vx vy =
       let result = setV vx (register vx `operation` register vy) machine
-      in if logicResetsVF (quirks machine) then setV VF 0 result else result
+      in if logicResetsVF (interpreter machine) then setV VF 0 result else result
     withFlag vx result flag = setFlag flag (setV vx result machine)
-    shiftSource vx vy = if shiftUsesVy (quirks machine) then vy else vx
+    shiftSource vx vy = if shiftUsesVy (interpreter machine) then vy else vx
     -- The COSMAC VIP leaves I after the last register saved or loaded.
     afterLoadStore vx updated
-      | loadStoreIncrementsI (quirks machine) = updated { index = index updated + fromIntegral (length [V0 .. vx]) }
+      | loadStoreIncrementsI (interpreter machine) = updated { index = index updated + fromIntegral (length [V0 .. vx]) }
       | otherwise = updated
 
 setV :: RegisterName -> Word8 -> Machine -> Machine
