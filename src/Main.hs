@@ -81,7 +81,7 @@ emulate options machineState window speaker frameStart carriedInstructions = do
   unless (Prelude.any isQuitEvent events) $ do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keyPresses = Prelude.map toKeyPress keyboardEvents
-    setKeys keyPresses machineState
+    setKeys (keyMapping options) keyPresses machineState
     when (Prelude.any isResizeEvent events) $ redraw options machineState window
     let instructionBudget = carriedInstructions + fromIntegral (speed options) / framesPerSecond
         instructionsThisFrame = floor instructionBudget

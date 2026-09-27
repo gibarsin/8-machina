@@ -28,6 +28,7 @@ executable 8-machina
   build-depends:    base >=4.12 && <5
                   , array
                   , bytestring
+                  , containers
                   , MonadRandom
                   , optparse-applicative
                   , process

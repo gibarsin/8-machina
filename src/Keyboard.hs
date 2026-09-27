@@ -2,6 +2,8 @@ module Keyboard where
 
 import Control.Monad
 import Data.Array.IO
+import Data.Char (isHexDigit, digitToInt, ord, toLower, toUpper)
+import qualified Data.Map as Map
 import Data.Maybe (isNothing, listToMaybe, mapMaybe)
 import Data.Word
 import qualified SDL
@@ -12,49 +14,80 @@ type Keypad = IOUArray Word8 Bool
 
 type Key = SDL.Keysym
 
+-- Which CHIP-8 key (0x0 to 0xF) each keyboard key presses.
+type KeyMapping = Map.Map SDL.Keycode Word8
+
 createKeypad :: IO Keypad
 createKeypad = newArray (0, 15) False
 
-mergeKeypad :: Keypad -> [(Key, Bool)] -> IO ()
-mergeKeypad keypad keypadUpdate = do
+mergeKeypad :: KeyMapping -> Keypad -> [(Key, Bool)] -> IO ()
+mergeKeypad mapping keypad keypadUpdate = do
   forM_ unmappedPresses $ \(key, _) -> do
     name <- keyName key
     hPutStrLn stderr $ "Ignoring unmapped key: " ++ name
-  mergeKeypad' keypad $ mapMaybe toKeyNumber keypadUpdate
+  mergeKeypad' keypad $ mapMaybe (toKeyNumber mapping) keypadUpdate
   where
     unmappedPresses =
-      filter (\(key, pressed) -> pressed && isNothing (keyMapping (keysymKeycode key))) keypadUpdate
+      filter (\(key, pressed) -> pressed && isNothing (Map.lookup (keysymKeycode key) mapping)) keypadUpdate
 
 mergeKeypad' :: Keypad -> [(Word8, Bool)] -> IO ()
 mergeKeypad' keypad keypadUpdate =
   forM_ keypadUpdate $ \(index, value) -> writeArray keypad index value
 
-keyMapping :: SDL.Keycode -> Maybe Word8
+-- The left side of a QWERTY keyboard, in the shape of the CHIP-8 keypad:
+--   1 2 3 4        1 2 3 C
+--   Q W E R        4 5 6 D
+--   A S D F   ->   7 8 9 E
+--   Z X C V        A 0 B F
+defaultKeyMapping :: KeyMapping
+defaultKeyMapping = Map.fromList
+  [ (characterKeycode '1', 0x1), (characterKeycode '2', 0x2), (characterKeycode '3', 0x3), (characterKeycode '4', 0xc)
+  , (characterKeycode 'Q', 0x4), (characterKeycode 'W', 0x5), (characterKeycode 'E', 0x6), (characterKeycode 'R', 0xd)
+  , (characterKeycode 'A', 0x7), (characterKeycode 'S', 0x8), (characterKeycode 'D', 0x9), (characterKeycode 'F', 0xe)
+  , (characterKeycode 'Z', 0xa), (characterKeycode 'X', 0x0), (characterKeycode 'C', 0xb), (characterKeycode 'V', 0xf)
+  ]
 
-keyMapping SDL.Keycode1 = Just 0x1
-keyMapping SDL.Keycode2 = Just 0x2
-keyMapping SDL.Keycode3 = Just 0x3
-keyMapping SDL.KeycodeQ = Just 0x4
-keyMapping SDL.KeycodeW = Just 0x5
-keyMapping SDL.KeycodeE = Just 0x6
-keyMapping SDL.KeycodeA = Just 0x7
-keyMapping SDL.KeycodeS = Just 0x8
-keyMapping SDL.KeycodeD = Just 0x9
-keyMapping SDL.KeycodeX = Just 0x0
-keyMapping SDL.KeycodeZ = Just 0xa
-keyMapping SDL.KeycodeC = Just 0xb
-keyMapping SDL.Keycode4 = Just 0xc
-keyMapping SDL.KeycodeR = Just 0xd
-keyMapping SDL.KeycodeF = Just 0xe
-keyMapping SDL.KeycodeV = Just 0xf
-keyMapping _            = Nothing
+-- SDL gives letter and digit keys the code of their lowercase character.
+characterKeycode :: Char -> SDL.Keycode
+characterKeycode character = SDL.Keycode (fromIntegral (ord (toLower character)))
+
+-- Names accepted by --key, compared without case.
+keyNames :: [(String, SDL.Keycode)]
+keyNames =
+  [ ([character], characterKeycode character) | character <- ['A' .. 'Z'] ++ ['0' .. '9'] ]
+  ++ [ ("KEYPAD" ++ show digit, keypadKeycode) | (digit, keypadKeycode) <- zip [0 :: Int ..] keypadDigits ]
+  ++ [ ("UP", SDL.KeycodeUp), ("DOWN", SDL.KeycodeDown), ("LEFT", SDL.KeycodeLeft), ("RIGHT", SDL.KeycodeRight)
+     , ("SPACE", SDL.KeycodeSpace), ("ENTER", SDL.KeycodeReturn), ("RETURN", SDL.KeycodeReturn)
+     , ("TAB", SDL.KeycodeTab), ("BACKSPACE", SDL.KeycodeBackspace)
+     , ("LEFTSHIFT", SDL.KeycodeLShift), ("RIGHTSHIFT", SDL.KeycodeRShift)
+     , ("LEFTCTRL", SDL.KeycodeLCtrl), ("RIGHTCTRL", SDL.KeycodeRCtrl)
+     ]
+  where
+    keypadDigits =
+      [ SDL.KeycodeKP0, SDL.KeycodeKP1, SDL.KeycodeKP2, SDL.KeycodeKP3, SDL.KeycodeKP4
+      , SDL.KeycodeKP5, SDL.KeycodeKP6, SDL.KeycodeKP7, SDL.KeycodeKP8, SDL.KeycodeKP9 ]
+
+-- Reads a NAME=HEX binding such as "Left=4".
+readKeyBinding :: String -> Either String (SDL.Keycode, Word8)
+readKeyBinding text = case break (== '=') text of
+  (name, '=' : [hexDigit])
+    | Just keycode <- lookup (map toUpper name) keyNames
+    , isHexDigit hexDigit -> Right (keycode, fromIntegral (digitToInt hexDigit))
+  _ -> Left $ "Invalid key binding " ++ show text
+         ++ ", expected NAME=HEX like Left=4, where NAME is a letter, digit, Keypad0-Keypad9, "
+         ++ "Up, Down, Left, Right, Space, Enter, Tab, Backspace, LeftShift, RightShift, LeftCtrl or RightCtrl"
+
+-- Adds the bindings to the default layout; the default keys keep working.
+keyMappingWith :: [(SDL.Keycode, Word8)] -> KeyMapping
+keyMappingWith bindings = Map.union (Map.fromList bindings) defaultKeyMapping
 
 -- SDL's human-readable name for the physical key, e.g. "Return" or "Space".
 keyName :: Key -> IO String
 keyName key = getScancodeName (keysymScancode key)
 
-toKeyNumber :: (Key, Bool) -> Maybe (Word8, Bool)
-toKeyNumber (key, pressed) = fmap (\keyNumber -> (keyNumber, pressed)) (keyMapping (keysymKeycode key))
+toKeyNumber :: KeyMapping -> (Key, Bool) -> Maybe (Word8, Bool)
+toKeyNumber mapping (key, pressed) =
+  fmap (\keyNumber -> (keyNumber, pressed)) (Map.lookup (keysymKeycode key) mapping)
 
 isKeyPressed :: Keypad -> Word8 -> IO Bool
 isKeyPressed keypad keyword = readArray keypad keyword

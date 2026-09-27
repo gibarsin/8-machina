@@ -2,6 +2,7 @@ module Parser where
 import Data.Bits (shiftR)
 import Data.Semigroup ((<>))
 import Graphics (Color, Colors (..))
+import Keyboard (KeyMapping, keyMappingWith, readKeyBinding)
 import Numeric (readHex)
 import Options.Applicative
 import Text.Printf (printf)
@@ -11,6 +12,7 @@ data Options = Options
   , windowSize :: (Int, Int)
   , colors :: Colors
   , speed :: Int
+  , keyMapping :: KeyMapping
   }
 
 parse :: IO Options
@@ -21,7 +23,15 @@ parserInfo = do
   info (helper <*> optionsParser) $ fullDesc <> progDesc "A CHIP-8 Emulator thinked in Functional Programming." <> header "CHIP-8 Emulator"
 
 optionsParser :: Parser Options
-optionsParser = Options <$> filePathParser <*> sizeParser <*> colorsParser <*> speedParser
+optionsParser =
+  Options <$> filePathParser <*> sizeParser <*> colorsParser <*> speedParser <*> keyMappingParser
+
+keyMappingParser :: Parser KeyMapping
+keyMappingParser =
+  fmap keyMappingWith . many $
+    option (eitherReader readKeyBinding) $
+      long "key" <> metavar "NAME=HEX"
+        <> help "Make keyboard key NAME press CHIP-8 key HEX, e.g. Left=4. Can be repeated. The default keys keep working."
 
 -- The CHIP-8 has no official clock speed; about 600 instructions per
 -- second runs most games at their intended pace.

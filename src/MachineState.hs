@@ -40,9 +40,9 @@ createMachineState = do
     , videoMemory = newVideoMemory
   }
 
-setKeys :: [(Key, Bool)] -> MachineState -> IO ()
-setKeys keysPressed machineState =
-  mergeKeypad (keypad machineState) keysPressed
+setKeys :: KeyMapping -> [(Key, Bool)] -> MachineState -> IO ()
+setKeys mapping keysPressed machineState =
+  mergeKeypad mapping (keypad machineState) keysPressed
 
 getPC :: MachineState -> IO Address
 getPC machineState = getPseudoRegisterValue (pseudoRegisters machineState) PC
