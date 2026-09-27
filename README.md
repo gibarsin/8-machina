@@ -56,10 +56,31 @@ A S D F         7 8 9 E
 Z X C V         A 0 B F
 ```
 
-Other keys are ignored. Close the window to quit.
+Other keys are ignored, unless mapped with `--key`. Close the window to quit.
+
+Options
+-------
+Options go before the ROM path:
+
+```sh
+cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Right=6 games/BRIX
+```
+
+  - `--size WIDTHxHEIGHT`: initial window size (default `1024x512`). The window can be resized while playing.
+  - `--foreground RRGGBB`, `--background RRGGBB`: pixel colors (default `FFFFFF` and `000000`)
+  - `--speed N`: instructions per second (default `600`)
+  - `--key NAME=HEX`: make a keyboard key press a CHIP-8 key, on top of the default layout. Can be repeated. `NAME` is a letter, a digit, `Keypad0` to `Keypad9`, `Up`, `Down`, `Left`, `Right`, `Space`, `Enter`, `Tab`, `Backspace`, `LeftShift`, `RightShift`, `LeftCtrl` or `RightCtrl`.
+  - `--tone HZ`: pitch of the beep (default `440`)
+  - `--volume 0-100`: loudness of the beep, `0` turns sound off (default `10`)
+  - `--quirks cosmac|superchip`: interpreter to imitate (default `cosmac`). BLINKY needs `superchip`.
 
 Changelog
 ---------
+### Unreleased
+  - Add `--size`, `--foreground`, `--background`, `--speed`, `--key`, `--tone`, `--volume` and `--quirks` options
+  - Make the window resizable
+  - Clip sprites at the screen edge and reset `VF` after `AND`, `OR` and `XOR`, as the COSMAC VIP did
+
 ### 1.1 (September 2026)
   - Add cabal build configuration
   - Add sound
@@ -79,13 +100,7 @@ Changelog
 
 Features To Develop
 -------------------
-  - Customize sound
-  - Customize display colors
-  - Customize display scale
-  - Customize keypad mapping
-  - Customize emulation speed
-  - Support the quirks of different CHIP-8 interpreters
-  - Use [brick](https://github.com/jtdaugherty/brick) as UI library
+  - Use [brick](https://github.com/jtdaugherty/brick) as UI library, after the back end is independent of the IO Monad
 
 To Refactor
 -----------
