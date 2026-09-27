@@ -66,7 +66,7 @@ Options go before the ROM path:
 cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Right=6 games/BRIX
 ```
 
-  - `--size WIDTHxHEIGHT`: initial window size (default `1024x512`). The window can be resized while playing.
+  - `--size WIDTHxHEIGHT`: initial window size, a multiple of 64x32 such as `640x320` or `1280x640` (default `1024x512`). The window can be resized while playing and snaps to the largest multiple that fits.
   - `--foreground RRGGBB`, `--background RRGGBB`: pixel colors (default `FFFFFF` and `000000`)
   - `--speed N`: instructions per second (default `600`)
   - `--key NAME=HEX`: make a keyboard key press a CHIP-8 key, on top of the default layout. Can be repeated. `NAME` is a letter, a digit, `Keypad0` to `Keypad9`, `Up`, `Down`, `Left`, `Right`, `Space`, `Enter`, `Tab`, `Backspace`, `LeftShift`, `RightShift`, `LeftCtrl` or `RightCtrl`.

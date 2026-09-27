@@ -82,7 +82,9 @@ emulate options machineState window speaker frameStart carriedInstructions = do
     let keyboardEvents = Prelude.filter isKeyboardEvent events
     let keyPresses = Prelude.map toKeyPress keyboardEvents
     setKeys (keyMapping options) keyPresses machineState
-    when (Prelude.any isResizeEvent events) $ redraw options machineState window
+    when (Prelude.any isResizeEvent events) $ do
+      snapWindowSize window
+      redraw options machineState window
     let instructionBudget = carriedInstructions + fromIntegral (speed options) / framesPerSecond
         instructionsThisFrame = floor instructionBudget
     replicateM_ instructionsThisFrame $ step options machineState window
@@ -109,6 +111,16 @@ step options machineState window = do
     (DRW _ _ _) -> redraw options machineState window >> incPC machineState
     _ -> do
       incPC machineState
+
+-- Shrinks the window to the largest multiple of 64x32 that fits, so the
+-- screen fills it without borders.
+snapWindowSize :: SDL.Window -> IO ()
+snapWindowSize window = do
+  SDL.V2 currentWidth currentHeight <- SDL.get (SDL.windowSize window)
+  let pixelSize = max 1 (min (currentWidth `div` fromIntegral width) (currentHeight `div` fromIntegral height))
+      validSize = SDL.V2 (pixelSize * fromIntegral width) (pixelSize * fromIntegral height)
+  when (validSize /= SDL.V2 currentWidth currentHeight) $
+    SDL.windowSize window SDL.$= validSize
 
 redraw :: Options -> MachineState -> SDL.Window -> IO ()
 redraw options machineState window = do

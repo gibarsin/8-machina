@@ -107,16 +107,25 @@ sizeParser :: Parser (Int, Int)
 sizeParser =
   option (eitherReader readSize) $
     long "size" <> metavar "WIDTHxHEIGHT" <> value (1024, 512) <> showDefaultWith showSize
-      <> help "Initial window size. The window can be resized while playing."
+      <> help "Initial window size, a multiple of 64x32. The window can be resized while playing."
 
+-- Only exact multiples of 64x32, so every CHIP-8 pixel is the same size
+-- and the screen fills the window.
 readSize :: String -> Either String (Int, Int)
 readSize text = case break (== 'x') text of
   (widthText, 'x' : heightText)
     | [(width, "")] <- reads widthText
-    , [(height, "")] <- reads heightText
-    , width >= 64
-    , height >= 32 -> Right (width, height)
-  _ -> Left $ "Invalid size " ++ show text ++ ", expected WIDTHxHEIGHT of at least 64x32"
+    , [(height, "")] <- reads heightText ->
+        if width >= 64 && width `mod` 64 == 0 && height * 2 == width
+          then Right (width, height)
+          else Left $ "Invalid size " ++ show text ++ ", expected a multiple of 64x32 such as "
+                 ++ suggestions width
+  _ -> Left $ "Invalid size " ++ show text ++ ", expected WIDTHxHEIGHT such as 1024x512"
+  where
+    suggestions width = case filter (>= 1) [width `div` 64, width `div` 64 + 1] of
+      [smaller, larger] | smaller /= larger -> showSize (sizeFor smaller) ++ " or " ++ showSize (sizeFor larger)
+      multiples -> showSize (sizeFor (last multiples))
+    sizeFor multiple = (64 * multiple, 32 * multiple)
 
 showSize :: (Int, Int) -> String
 showSize (width, height) = show width ++ "x" ++ show height
