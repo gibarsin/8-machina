@@ -18,6 +18,8 @@ import Sound
 import VideoMemory
 
 import qualified SDL as SDL
+import System.Exit (die)
+import Text.Printf (printf)
 
 main :: IO ()
 main = do
@@ -73,7 +75,11 @@ emulate machineState window speaker frameStart = do
 
 step :: MachineState -> SDL.Window -> IO ()
 step machineState window = do
-  instruction <- fmap decodeInstruction $ fetch machineState
+  pc <- getPC machineState
+  encodedInstruction <- fetch machineState
+  instruction <- maybe (die $ printf "Unknown instruction 0x%04X at address 0x%03X" encodedInstruction pc)
+                       return
+                       (decodeInstruction encodedInstruction)
   execute machineState instruction
   case instruction of
     (JP _) -> return ()
