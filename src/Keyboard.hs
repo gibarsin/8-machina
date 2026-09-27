@@ -10,6 +10,8 @@ import qualified SDL
 import SDL.Input.Keyboard
 import System.IO (hPutStrLn, stderr)
 
+import qualified Chip8.Keypad as Keypad
+
 type Keypad = IOUArray Word8 Bool
 
 type Key = SDL.Keysym
@@ -88,6 +90,19 @@ keyName key = getScancodeName (keysymScancode key)
 toKeyNumber :: KeyMapping -> (Key, Bool) -> Maybe (Word8, Bool)
 toKeyNumber mapping (key, pressed) =
   fmap (\keyNumber -> (keyNumber, pressed)) (Map.lookup (keysymKeycode key) mapping)
+
+-- The keypad after this frame's key presses and releases.
+updateKeypad :: KeyMapping -> [(Key, Bool)] -> Keypad.Keypad -> Keypad.Keypad
+updateKeypad mapping keyPresses current =
+  foldl (\keys (keyNumber, pressed) -> Keypad.setKey keyNumber pressed keys) current
+        (mapMaybe (toKeyNumber mapping) keyPresses)
+
+logUnmappedKeys :: KeyMapping -> [(Key, Bool)] -> IO ()
+logUnmappedKeys mapping keyPresses =
+  forM_ keyPresses $ \(key, pressed) ->
+    when (pressed && isNothing (Map.lookup (keysymKeycode key) mapping)) $ do
+      name <- keyName key
+      hPutStrLn stderr $ "Ignoring unmapped key: " ++ name
 
 isKeyPressed :: Keypad -> Word8 -> IO Bool
 isKeyPressed keypad keyword = readArray keypad keyword

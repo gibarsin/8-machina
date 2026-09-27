@@ -2,56 +2,47 @@
 
 module Main where
 
-import Control.Monad
-import CPU
-import Data.ByteString
-import Fonts
-import GameROMLoader
-import Graphics
-import Instruction
-import MachineState
-import Memory
-import Parser
-import Register
-import RegisterName
-import Sound
-import VideoMemory
-
 import Control.Exception (try)
-import qualified SDL as SDL
+import Control.Monad
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as ByteString
+import qualified SDL
 import System.Exit (die)
 import System.IO.Error (ioeGetErrorString)
+import System.Random (initStdGen)
 import Text.Printf (printf)
+
+import Chip8.CPU (Frame (..), errorMessage, runFrame)
+import Chip8.Machine (Machine (..), newMachine, programStart)
+import Chip8.Memory (memorySize)
+import Chip8.VideoMemory (screenHeight, screenWidth)
+import Graphics
+import Keyboard
+import Parser
+import Sound
 
 main :: IO ()
 main = do
   options <- parse
   gameROM <- loadROMFile (romPath options)
-  run options gameROM
+  seed <- initStdGen
+  run options (newMachine (quirksProfile options) seed gameROM)
 
 loadROMFile :: FilePath -> IO ByteString
 loadROMFile path = do
-  contents <- try (Data.ByteString.readFile path)
+  contents <- try (ByteString.readFile path)
   case contents of
     Left err -> die $ printf "Could not read ROM file %s: %s" path (ioeGetErrorString err)
     Right rom
-      | romSize rom > maxROMSize ->
-          die $ printf "ROM file %s is too large: %d bytes (at most %d fit in memory)" path (romSize rom) maxROMSize
+      | ByteString.length rom > maxROMSize ->
+          die $ printf "ROM file %s is too large: %d bytes (at most %d fit in memory)" path (ByteString.length rom) maxROMSize
       | otherwise -> return rom
   where
-    romSize = Data.ByteString.length
-    maxROMSize = fromIntegral (memorySize - gameROMStartPosition)
+    maxROMSize = memorySize - fromIntegral programStart
 
-run :: Options -> ByteString -> IO ()
-run options gameROM = do
-  machineState <- createMachineState (quirksProfile options)
-  loadFonts $ memory machineState
-  loadGameROM (memory machineState) gameROM
-  setPC machineState gameROMStartPosition
-
-  -- SDL.initialize [SDL.InitVideo]
+run :: Options -> Machine -> IO ()
+run options machine = do
   SDL.initializeAll
-
   window <- SDL.createWindow
                    "CHIP-8"
                    SDL.defaultWindow
@@ -62,7 +53,7 @@ run options gameROM = do
   speaker <- openSpeaker (tone options) (volume options)
 
   frameStart <- SDL.time
-  emulate options machineState window speaker frameStart 0
+  emulate options window speaker frameStart 0 machine
 
   closeSpeaker speaker
   SDL.destroyWindow window
@@ -75,57 +66,36 @@ framesPerSecond = 60
 
 -- Each frame adds speed / 60 instructions to the budget and runs the whole
 -- part of it; the fraction carries over, so any speed averages out exactly.
-emulate :: Options -> MachineState -> SDL.Window -> Speaker -> Double -> Double -> IO ()
-emulate options machineState window speaker frameStart carriedInstructions = do
+emulate :: Options -> SDL.Window -> Speaker -> Double -> Double -> Machine -> IO ()
+emulate options window speaker frameStart carriedInstructions machine = do
   events <- SDL.pollEvents
-  unless (Prelude.any isQuitEvent events) $ do
-    let keyboardEvents = Prelude.filter isKeyboardEvent events
-    let keyPresses = Prelude.map toKeyPress keyboardEvents
-    setKeys (keyMapping options) keyPresses machineState
-    when (Prelude.any isResizeEvent events) $ do
+  unless (any isQuitEvent events) $ do
+    when (any isResizeEvent events) $ do
       snapWindowSize window
-      redraw options machineState window
-    let instructionBudget = carriedInstructions + fromIntegral (speed options) / framesPerSecond
+      draw (colors options) (screen machine) window
+    let keyPresses = map toKeyPress (filter isKeyboardEvent events)
+        pressedKeys = updateKeypad (keyMapping options) keyPresses (keypad machine)
+        instructionBudget = carriedInstructions + fromIntegral (speed options) / framesPerSecond
         instructionsThisFrame = floor instructionBudget
-    replicateM_ instructionsThisFrame $ step options machineState window
-    decTimers machineState
-    soundTimer <- getRegisterValue (registers machineState) ST
-    setSpeaker speaker (soundTimer > 0)
-    nextFrameStart <- waitForNextFrame frameStart
-    emulate options machineState window speaker nextFrameStart
-            (instructionBudget - fromIntegral instructionsThisFrame)
-
-step :: Options -> MachineState -> SDL.Window -> IO ()
-step options machineState window = do
-  pc <- getPC machineState
-  encodedInstruction <- fetch machineState
-  instruction <- maybe (die $ printf "Unknown instruction 0x%04X at address 0x%03X" encodedInstruction pc)
-                       return
-                       (decodeInstruction encodedInstruction)
-  execute machineState instruction
-  case instruction of
-    (JP _) -> return ()
-    (CALL _) -> return ()
-    (JPV0 _) -> return ()
-    CLS -> redraw options machineState window >> incPC machineState
-    (DRW _ _ _) -> redraw options machineState window >> incPC machineState
-    _ -> do
-      incPC machineState
+    logUnmappedKeys (keyMapping options) keyPresses
+    case runFrame instructionsThisFrame pressedKeys machine of
+      Left emulatorError -> die (errorMessage emulatorError)
+      Right (nextMachine, frame) -> do
+        when (screenChanged frame) $ draw (colors options) (screen nextMachine) window
+        setSpeaker speaker (beeping frame)
+        nextFrameStart <- waitForNextFrame frameStart
+        emulate options window speaker nextFrameStart
+                (instructionBudget - fromIntegral instructionsThisFrame) nextMachine
 
 -- Shrinks the window to the largest multiple of 64x32 that fits, so the
 -- screen fills it without borders.
 snapWindowSize :: SDL.Window -> IO ()
 snapWindowSize window = do
   SDL.V2 currentWidth currentHeight <- SDL.get (SDL.windowSize window)
-  let pixelSize = max 1 (min (currentWidth `div` fromIntegral width) (currentHeight `div` fromIntegral height))
-      validSize = SDL.V2 (pixelSize * fromIntegral width) (pixelSize * fromIntegral height)
+  let pixelSize = max 1 (min (currentWidth `div` fromIntegral screenWidth) (currentHeight `div` fromIntegral screenHeight))
+      validSize = SDL.V2 (pixelSize * fromIntegral screenWidth) (pixelSize * fromIntegral screenHeight)
   when (validSize /= SDL.V2 currentWidth currentHeight) $
     SDL.windowSize window SDL.$= validSize
-
-redraw :: Options -> MachineState -> SDL.Window -> IO ()
-redraw options machineState window = do
-  draw (colors options) (videoMemory machineState) window
-  SDL.updateWindowSurface window
 
 -- Sleeps until the current frame ends and returns when the next one starts.
 -- If emulation fell behind, the next frame starts now instead of trying to

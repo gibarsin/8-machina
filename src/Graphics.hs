@@ -3,9 +3,8 @@ module Graphics where
 import Control.Monad
 
 import  SDL
-import VideoMemory
-import Data.Array.MArray
 import Data.Word (Word8)
+import Chip8.VideoMemory (Screen, pixelAt, screenHeight, screenWidth)
 
 -- Red, green and blue components.
 type Color = (Word8, Word8, Word8)
@@ -17,22 +16,22 @@ data Colors = Colors
 
 -- Draws the screen at the largest whole-number pixel size that fits the
 -- window, centred, with the background color filling the rest.
-draw :: Colors -> VideoMemory -> SDL.Window -> IO ()
-draw colors vm window = do
+draw :: Colors -> Screen -> SDL.Window -> IO ()
+draw colors currentScreen window = do
   surface <- SDL.getWindowSurface window
   V2 windowWidth windowHeight <- SDL.surfaceDimensions surface
-  let pixelSize = max 1 (min (windowWidth `div` fromIntegral width) (windowHeight `div` fromIntegral height))
-      offset = V2 ((windowWidth - pixelSize * fromIntegral width) `div` 2)
-                  ((windowHeight - pixelSize * fromIntegral height) `div` 2)
+  let pixelSize = max 1 (min (windowWidth `div` fromIntegral screenWidth) (windowHeight `div` fromIntegral screenHeight))
+      offset = V2 ((windowWidth - pixelSize * fromIntegral screenWidth) `div` 2)
+                  ((windowHeight - pixelSize * fromIntegral screenHeight) `div` 2)
   SDL.surfaceFillRect surface Nothing (color colors False)
-  forM_ [0..(width - 1)] (\ x ->
-    forM_ [0..(height - 1)] (\ y ->
-      do
+  forM_ [0 .. screenWidth - 1] $ \x ->
+    forM_ [0 .. screenHeight - 1] $ \y ->
+      when (pixelAt (x, y) currentScreen) $ do
         let area = Rectangle
                      (P (offset + V2 (fromIntegral x * pixelSize) (fromIntegral y * pixelSize)))
                      (V2 pixelSize pixelSize)
-        ps <- getPixelState vm (x, y)
-        SDL.surfaceFillRect surface (Just area) (color colors ps)))
+        SDL.surfaceFillRect surface (Just area) (color colors True)
+  SDL.updateWindowSurface window
 
 color :: Colors -> Bool -> V4 Word8
 color colors pixelOn = V4 red green blue maxBound
