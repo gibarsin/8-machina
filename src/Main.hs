@@ -4,7 +4,7 @@ import System.Random (initStdGen)
 
 import Chip8.Machine (newMachine)
 import qualified Emulator
-import qualified Frontend.SDL as SDLFrontend
+import qualified Frontend.Select
 import Parser
 import Rom (loadROMFile)
 
@@ -14,5 +14,5 @@ main = do
   gameROM <- loadROMFile (romPath options)
   seed <- initStdGen
   let machine = newMachine (interpreterProfile options) seed gameROM
-  frontend <- SDLFrontend.open options
+  frontend <- Frontend.Select.open options
   Emulator.run frontend (speed options) (keyMapping options) machine

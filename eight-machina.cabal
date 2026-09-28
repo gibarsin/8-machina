@@ -12,7 +12,9 @@ executable 8-machina
   main-is:          Main.hs
   hs-source-dirs:   src
   other-modules:    Frontend
+                  , Frontend.Brick
                   , Frontend.SDL
+                  , Frontend.Select
                   , Chip8.CPU
                   , Chip8.Fonts
                   , Chip8.Instruction
@@ -31,11 +33,15 @@ executable 8-machina
                   , Rom
                   , Sound
   build-depends:    base >=4.12 && <5
+                  , brick >=2.1
                   , bytestring
                   , containers
+                  , mtl
                   , optparse-applicative
                   , random >=1.2
                   , sdl2 >=2.5
                   , vector
+                  , vty >=6
+                  , vty-crossplatform
   default-language: Haskell2010
   ghc-options:      -threaded

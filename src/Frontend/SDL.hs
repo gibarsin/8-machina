@@ -9,8 +9,8 @@ import Data.Maybe (catMaybes)
 import qualified SDL
 
 import Chip8.VideoMemory (Screen, blankScreen, screenHeight, screenWidth)
-import Frontend (Frontend (..), Input (..), PhysicalKey (..))
-import Graphics (Colors, draw)
+import Frontend (Colors, Frontend (..), Input (..), PhysicalKey (..))
+import Graphics (draw)
 import Parser (Options (..))
 import Sound (Speaker, closeSpeaker, openSpeaker, setSpeaker)
 
