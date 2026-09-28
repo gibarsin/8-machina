@@ -111,3 +111,7 @@ Changelog
 ### 1.0 (April 2018)
   - First version, developed during the functional programming course at ITBA (Instituto Tecnológico de Buenos Aires)
 
+Features To Develop
+--------------------
+  - A UI to choose the ROM and set options (colors, speed, key bindings, etc.) that are currently only available as command-line flags
+
