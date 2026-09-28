@@ -77,7 +77,7 @@ cabal run 8-machina -- --size 1280x640 --foreground 33FF66 --key Left=4 --key Ri
 
 Changelog
 ---------
-### Unreleased
+### 1.5 (September 2026)
   - Add a terminal front-end (`--frontend terminal`), using [brick](https://github.com/jtdaugherty/brick)
 
 ### 1.4 (September 2026)
